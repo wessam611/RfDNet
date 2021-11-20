@@ -5,9 +5,10 @@ from torch.utils.data.dataset import Dataset
 
 
 class ShapeNetCoreDataset(Dataset):
-    def __init__(self, root):
+    def __init__(self, root, transform=None):
         super(ShapeNetCoreDataset, self).__init__()
         self.root = root
+        self.transform = transform
         self.shape_net_core = pytorch3d.datasets.ShapeNetCore(root=root)
 
     def __len__(self):
@@ -16,8 +17,7 @@ class ShapeNetCoreDataset(Dataset):
     def __getitem__(self, index):
         shape = self.shape_net_core[index]
 
-        # TODO: transform to pointcloud, perform data augmentation:
-        # - random cropping
-        # - drop points (make the pc sparser)
+        if self.transform is not None:
+            shape = self.transform(shape)
 
         return shape
