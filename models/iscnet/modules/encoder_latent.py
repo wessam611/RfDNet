@@ -40,6 +40,9 @@ class Encoder_Latent(nn.Module):
         self.fc_logstd = nn.Linear(128, z_dim)
 
         if not leaky:
+            # interesting why we use maxpool w/ relu
+            # and mean with lrelu
+            # WESS_COMM
             self.actvn = F.relu
             self.pool = maxpool
         else:
@@ -47,11 +50,20 @@ class Encoder_Latent(nn.Module):
             self.pool = torch.mean
 
     def forward(self, p, x, c=None, **kwargs):
+        '''
+        p: points tensor
+        x: occupancy values
+        c: latent conditioned code? I guess
+        '''
         # output size: B x T X F
         net = self.fc_0(x.unsqueeze(-1))
         net = net + self.fc_pos(p)
 
         if self.c_dim != 0:
+            # good that it's easy not to use that 
+            # I can imagine we'll have to switch it off
+            # for pretraining
+            # WESS_COMM
             net = net + self.fc_c(c).unsqueeze(1)
 
         net = self.fc_1(self.actvn(net))

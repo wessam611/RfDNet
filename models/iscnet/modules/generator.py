@@ -29,6 +29,9 @@ class Generator3D(object):
         sample (bool): whether z should be sampled
         simplify_nfaces (int): number of faces the mesh should be simplified to
         preprocessor (nn.Module): preprocessor for inputs
+    # I can imagine this class is just used for visualization?
+    # and eval
+    # WESS_COMM
     '''
 
     def __init__(self, model, points_batch_size=100000,

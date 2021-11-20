@@ -40,6 +40,12 @@ class BaseNetwork(nn.Module):
         self.cfg = cfg
 
         '''load network blocks'''
+        
+        # config['model'] contains different parts of the network
+        # ex: (backbone, votingmodule ...)
+        # phase_name -> dict key
+        # net_spec : ("modelname", "loss") .. check yaml files 
+        # WESS_COMM
         for phase_name, net_spec in cfg.config['model'].items():
             method_name = net_spec['method']
             # load specific optimizer parameters
@@ -57,6 +63,10 @@ class BaseNetwork(nn.Module):
     def freeze_modules(self, cfg):
         '''
         Freeze modules in training
+
+        'backbone', 'voting', 'detection' models are frozen
+        while training for completion (from ISCNet_completion.yaml)
+        WESS_COMM
         '''
         if cfg.config['mode'] == 'train':
             freeze_layers = cfg.config['train']['freeze']

@@ -48,6 +48,12 @@ class SimpleDecoder(nn.Module):
             self.actvn = lambda x: F.leaky_relu(x, 0.2)
 
     def forward(self, p, z, c=None, **kwargs):
+        '''
+        p: input points for completion
+        z: latent dist (mean & std), guess is N(0, I) w/ training
+        c: input features
+        # WESS_COMM
+        '''
         net = self.fc_p(p)
 
         if self.z_dim != 0:
@@ -57,6 +63,8 @@ class SimpleDecoder(nn.Module):
         if self.c_dim != 0:
             net_c = self.fc_c(c).unsqueeze(1)
             net = net + net_c
+        # net is summation of 3 different linear layers
+        # acting on points, features'from encoder', and z dist
 
         net = self.block0(net)
         net = self.block1(net)

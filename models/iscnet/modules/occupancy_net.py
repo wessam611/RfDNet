@@ -18,6 +18,8 @@ class ONet(nn.Module):
         encoder_latent (nn.Module): latent encoder network
         p0_z (dist): prior distribution for latent code z
         device (device): torch device
+    # I guess we'll only need that network for pretraining
+    # WESS_COMM
     '''
     def __init__(self, cfg, optim_spec=None):
         super(ONet, self).__init__()
@@ -76,7 +78,15 @@ class ONet(nn.Module):
         kwargs = {}
         '''Infer latent code z.'''
         if self.z_dim > 0:
+            # Seems like we're only enforcing latent space to be close to N(0, I) dist
+            # WESS_COMM
             q_z = self.infer_z(input_points_for_completion, input_points_occ_for_completion, input_features_for_completion, device, **kwargs)
+            # I was wondering about sampling and backprop..
+            # but turnsout rsample is sampling with reparam trick.
+            # lack of Torch knowledge
+            # byt maybe we should ask why we are sampling and then applying kl_div
+            # instead of just computing kl_div loss from distribution params (mean & std)
+            # WESS_COMM
             z = q_z.rsample()
             # KL-divergence
             p0_z = self.get_prior_z(self.z_dim, device)
@@ -135,6 +145,9 @@ class ONet(nn.Module):
             size (Size): size of z
             sample (bool): whether to sample
         '''
+        # I don't understand why we only sample from a normal
+        # instead of using encoder..
+        # WESS_COMM
         p0_z = self.get_prior_z(self.z_dim, device)
         if sample:
             z = p0_z.sample(size)
@@ -151,6 +164,8 @@ class ONet(nn.Module):
         :param features: latent conditioned features
         :return:
         '''
+        # decoder seems to take input points (maybe w/ skip connections)
+        # WESS_COMM
         logits = self.decoder(input_points_for_completion, z, features, **kwargs)
         p_r = dist.Bernoulli(logits=logits)
         return p_r
@@ -165,6 +180,9 @@ class ONet(nn.Module):
         :return:
         '''
         if self.encoder_latent is not None:
+            # I feel like this is equivalent to a VAE more than an AE
+            # I don't think it was mentioned in the paper that it's a VAE
+            # And if so, why aren't we using reparameterization trick?
             mean_z, logstd_z = self.encoder_latent(p, occ, c, **kwargs)
         else:
             batch_size = p.size(0)

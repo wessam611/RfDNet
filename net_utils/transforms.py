@@ -7,6 +7,11 @@ class SubsamplePoints(object):
 
     Args:
         N (int): number of points to be subsampled
+    #   N (int, int): (subsampling for input, 
+    #                   subsampling for output) ?
+    # N doesn't have to be int (from implementation of __call__)
+    # We'll be using that
+    # WESS_COMM
     '''
     def __init__(self, N, mode):
         self.N = N
@@ -24,14 +29,19 @@ class SubsamplePoints(object):
         data_out = data.copy()
         if isinstance(self.N, int):
             if self.mode == 'test':
+                # Why do we fix sample for test?
+                # WESS_COMM
                 idx = np.arange(0, self.N)
             else:
                 idx = np.random.randint(points.shape[0], size=self.N)
             data_out.update({
                 'points': points[idx, :],
-                'occ':  occ[idx],
+                'occ':  occ[idx], #Occupancy # WESS_COMM
             })
         else:
+            # I don't understand why we'd need different sizes
+            # for Nt_in and Nt_out
+            # WESS_COMM
             Nt_out, Nt_in = self.N
             occ_binary = (occ >= 0.5)
             points0 = points[~occ_binary]

@@ -10,6 +10,8 @@ class ResnetBlockFC(nn.Module):
         size_in (int): input dimension
         size_out (int): output dimension
         size_h (int): hidden dimension
+    # used in decoder
+    # WESS_COMM
     '''
 
     def __init__(self, size_in, size_out=None, size_h=None):
@@ -249,6 +251,9 @@ class CBatchNorm1d_legacy(nn.Module):
         c_dim (int): dimension of latent conditioned code c
         f_dim (int): feature dimension
         norm_method (str): normalization method
+    # so legacy is using Linear layers instead of Conv1d
+    # and reshapes the out dim after
+    # WESS_COMM
     '''
 
     def __init__(self, c_dim, f_dim, norm_method='batch_norm'):

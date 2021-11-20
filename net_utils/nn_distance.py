@@ -43,6 +43,8 @@ def nn_distance(pc1, pc2, l1smooth=False, delta=1.0, l1=False):
         idx1: (B,N) torch int64 tensor
         dist2: (B,M) torch float32 tensor
         idx2: (B,M) torch int64 tensor
+    # Check this loss
+    # WESS_COMM
     """
     N = pc1.shape[1]
     M = pc2.shape[1]
