@@ -16,9 +16,12 @@ from net_utils.transforms import SubsamplePoints
 from external import binvox_rw
 import pickle
 
+from datasets.shapenet.shapenet_dataset import ShapeNetCoreDataset
+
 default_collate = torch.utils.data.dataloader.default_collate
 MAX_NUM_OBJ = 64
 MEAN_COLOR_RGB = np.array([121.87661, 109.73591, 95.61673])
+
 
 class ISCNet_ScanNet(ScanNet):
     def __init__(self, cfg, mode):
@@ -30,7 +33,8 @@ class ISCNet_ScanNet(ScanNet):
         self.shapenet_path = cfg.config['data']['shapenet_path']
         self.points_unpackbits = cfg.config['data']['points_unpackbits']
         self.n_points_object = cfg.config['data']['points_subsample']
-        self.points_transform = SubsamplePoints(cfg.config['data']['points_subsample'], mode)
+        self.points_transform = SubsamplePoints(
+            cfg.config['data']['points_subsample'], mode)
         self.phase = cfg.config[self.mode]['phase']
 
     def __getitem__(self, idx):
@@ -78,7 +82,8 @@ class ISCNet_ScanNet(ScanNet):
         if self.use_height:
             floor_height = np.percentile(point_cloud[:, 2], 0.99)
             height = point_cloud[:, 2] - floor_height
-            point_cloud = np.concatenate([point_cloud, np.expand_dims(height, 1)], 1)
+            point_cloud = np.concatenate(
+                [point_cloud, np.expand_dims(height, 1)], 1)
 
         '''Augment'''
         if self.augment:
@@ -96,20 +101,26 @@ class ISCNet_ScanNet(ScanNet):
                 point_votes[:, [2, 5, 8]] = -1 * point_votes[:, [2, 5, 8]]
 
             # Rotation along up-axis/Z-axis
-            rot_angle = (np.random.random() * np.pi / 2) - np.pi / 4  # -45 ~ +45 degree
+            rot_angle = (np.random.random() * np.pi / 2) - \
+                np.pi / 4  # -45 ~ +45 degree
             rot_mat = rotz(rot_angle)
 
             point_votes_end = np.zeros_like(point_votes)
-            point_votes_end[:,1:4] = np.dot(point_cloud[:,0:3] + point_votes[:,1:4], np.transpose(rot_mat))
-            point_votes_end[:,4:7] = np.dot(point_cloud[:,0:3] + point_votes[:,4:7], np.transpose(rot_mat))
-            point_votes_end[:,7:10] = np.dot(point_cloud[:,0:3] + point_votes[:,7:10], np.transpose(rot_mat))
+            point_votes_end[:, 1:4] = np.dot(
+                point_cloud[:, 0:3] + point_votes[:, 1:4], np.transpose(rot_mat))
+            point_votes_end[:, 4:7] = np.dot(
+                point_cloud[:, 0:3] + point_votes[:, 4:7], np.transpose(rot_mat))
+            point_votes_end[:, 7:10] = np.dot(
+                point_cloud[:, 0:3] + point_votes[:, 7:10], np.transpose(rot_mat))
 
-            point_cloud[:, 0:3] = np.dot(point_cloud[:, 0:3], np.transpose(rot_mat))
+            point_cloud[:, 0:3] = np.dot(
+                point_cloud[:, 0:3], np.transpose(rot_mat))
             boxes3D[:, 0:3] = np.dot(boxes3D[:, 0:3], np.transpose(rot_mat))
             boxes3D[:, 6] += rot_angle
-            point_votes[:,1:4] = point_votes_end[:,1:4] - point_cloud[:,0:3]
-            point_votes[:,4:7] = point_votes_end[:,4:7] - point_cloud[:,0:3]
-            point_votes[:,7:10] = point_votes_end[:,7:10] - point_cloud[:,0:3]
+            point_votes[:, 1:4] = point_votes_end[:, 1:4] - point_cloud[:, 0:3]
+            point_votes[:, 4:7] = point_votes_end[:, 4:7] - point_cloud[:, 0:3]
+            point_votes[:, 7:10] = point_votes_end[:, 7:10] - \
+                point_cloud[:, 0:3]
 
             '''Normalize angles to [-pi, pi]'''
             boxes3D[:, 6] = np.mod(boxes3D[:, 6] + np.pi, 2 * np.pi) - np.pi
@@ -126,18 +137,21 @@ class ISCNet_ScanNet(ScanNet):
 
         # NOTE: set size class as semantic class. Consider use size2class.
         size_classes[0:boxes3D.shape[0]] = class_ind
-        size_residuals[0:boxes3D.shape[0], :] = boxes3D[:, 3:6] - self.dataset_config.mean_size_arr[class_ind, :]
+        size_residuals[0:boxes3D.shape[0], :] = boxes3D[:, 3:6] - \
+            self.dataset_config.mean_size_arr[class_ind, :]
         target_bboxes_mask[0:boxes3D.shape[0]] = 1
-        target_bboxes[0:boxes3D.shape[0], :] = boxes3D[:,0:6]
+        target_bboxes[0:boxes3D.shape[0], :] = boxes3D[:, 0:6]
         object_instance_labels[0:boxes3D.shape[0]] = object_instance_ids
 
-        obj_angle_class, obj_angle_residuals = self.dataset_config.angle2class(boxes3D[:, 6])
+        obj_angle_class, obj_angle_residuals = self.dataset_config.angle2class(
+            boxes3D[:, 6])
         angle_classes[0:boxes3D.shape[0]] = obj_angle_class
         angle_residuals[0:boxes3D.shape[0]] = obj_angle_residuals
 
-        point_cloud, choices = pc_util.random_sampling(point_cloud, self.num_points, return_choices=True)
-        point_votes_mask = point_votes[choices,0]
-        point_votes = point_votes[choices,1:]
+        point_cloud, choices = pc_util.random_sampling(
+            point_cloud, self.num_points, return_choices=True)
+        point_votes_mask = point_votes[choices, 0]
+        point_votes = point_votes[choices, 1:]
         point_instance_labels = point_instance_labels[choices]
 
         '''For Object Detection'''
@@ -158,34 +172,46 @@ class ISCNet_ScanNet(ScanNet):
 
         '''For Object Completion'''
         if self.phase == 'completion':
-            object_points = np.zeros((MAX_NUM_OBJ, np.sum(self.n_points_object), 3))
-            object_points_occ = np.zeros((MAX_NUM_OBJ, np.sum(self.n_points_object)))
-            points_data = self.get_shapenet_points(shapenet_catids, shapenet_ids, transform=self.points_transform)
+            object_points = np.zeros(
+                (MAX_NUM_OBJ, np.sum(self.n_points_object), 3))
+            object_points_occ = np.zeros(
+                (MAX_NUM_OBJ, np.sum(self.n_points_object)))
+            points_data = self.get_shapenet_points(
+                shapenet_catids, shapenet_ids, transform=self.points_transform)
             object_points[0:boxes3D.shape[0]] = points_data['points']
             object_points_occ[0:boxes3D.shape[0]] = points_data['occ']
 
             ret_dict['object_points'] = object_points.astype(np.float32)
-            ret_dict['object_points_occ'] = object_points_occ.astype(np.float32)
-            ret_dict['object_instance_labels'] = object_instance_labels.astype(np.float32)
-            ret_dict['point_instance_labels'] = point_instance_labels.astype(np.float32)
+            ret_dict['object_points_occ'] = object_points_occ.astype(
+                np.float32)
+            ret_dict['object_instance_labels'] = object_instance_labels.astype(
+                np.float32)
+            ret_dict['point_instance_labels'] = point_instance_labels.astype(
+                np.float32)
 
             '''Get Voxels for Visualization'''
-            voxels_data = self.get_shapenet_voxels(shapenet_catids, shapenet_ids)
+            voxels_data = self.get_shapenet_voxels(
+                shapenet_catids, shapenet_ids)
             object_voxels = np.zeros((MAX_NUM_OBJ, *voxels_data.shape[1:]))
             object_voxels[0:boxes3D.shape[0]] = voxels_data
             ret_dict['object_voxels'] = object_voxels.astype(np.float32)
 
             if self.mode in ['test']:
-                points_iou_data = self.get_shapenet_points(shapenet_catids, shapenet_ids, transform=None)
+                points_iou_data = self.get_shapenet_points(
+                    shapenet_catids, shapenet_ids, transform=None)
 
                 n_iou_points = points_iou_data['occ'].shape[-1]
                 object_points_iou = np.zeros((MAX_NUM_OBJ, n_iou_points, 3))
                 object_points_iou_occ = np.zeros((MAX_NUM_OBJ, n_iou_points))
-                object_points_iou[0:boxes3D.shape[0]] = points_iou_data['points']
-                object_points_iou_occ[0:boxes3D.shape[0]] = points_iou_data['occ']
+                object_points_iou[0:boxes3D.shape[0]
+                                  ] = points_iou_data['points']
+                object_points_iou_occ[0:boxes3D.shape[0]
+                                      ] = points_iou_data['occ']
 
-                ret_dict['object_points_iou'] = object_points_iou.astype(np.float32)
-                ret_dict['object_points_iou_occ'] = object_points_iou_occ.astype(np.float32)
+                ret_dict['object_points_iou'] = object_points_iou.astype(
+                    np.float32)
+                ret_dict['object_points_iou_occ'] = object_points_iou_occ.astype(
+                    np.float32)
                 ret_dict['shapenet_catids'] = shapenet_catids
                 ret_dict['shapenet_ids'] = shapenet_ids
         return ret_dict
@@ -194,7 +220,8 @@ class ISCNet_ScanNet(ScanNet):
         '''Load object voxels.'''
         shape_data_list = []
         for shapenet_catid, shapenet_id in zip(shapenet_catids, shapenet_ids):
-            voxel_file = os.path.join(self.shapenet_path, 'voxel/16', shapenet_catid, shapenet_id + '.binvox')
+            voxel_file = os.path.join(
+                self.shapenet_path, 'voxel/16', shapenet_catid, shapenet_id + '.binvox')
             with open(voxel_file, 'rb') as f:
                 voxels = binvox_rw.read_as_3d_array(f)
             voxels = voxels.data.astype(np.float32)
@@ -205,7 +232,8 @@ class ISCNet_ScanNet(ScanNet):
         '''Load points and corresponding occ values.'''
         shape_data_list = []
         for shapenet_catid, shapenet_id in zip(shapenet_catids, shapenet_ids):
-            points_dict = np.load(os.path.join(self.shapenet_path, 'point', shapenet_catid, shapenet_id + '.npz'))
+            points_dict = np.load(os.path.join(
+                self.shapenet_path, 'point', shapenet_catid, shapenet_id + '.npz'))
             points = points_dict['points']
             # Break symmetry if given in float16:
             if points.dtype == np.float16 and self.mode == 'train':
@@ -217,26 +245,31 @@ class ISCNet_ScanNet(ScanNet):
             if self.points_unpackbits:
                 occupancies = np.unpackbits(occupancies)[:points.shape[0]]
             occupancies = occupancies.astype(np.float32)
-            data = {'points':points, 'occ': occupancies}
+            data = {'points': points, 'occ': occupancies}
             if transform is not None:
                 data = transform(data)
             shape_data_list.append(data)
 
         return recursive_cat_to_numpy(shape_data_list)
 
+
 def recursive_cat_to_numpy(data_list):
     '''Covert a list of dict to dict of numpy arrays.'''
     out_dict = {}
     for key, value in data_list[0].items():
         if isinstance(value, np.ndarray):
-            out_dict = {**out_dict, key: np.concatenate([data[key][np.newaxis] for data in data_list], axis=0)}
+            out_dict = {
+                **out_dict, key: np.concatenate([data[key][np.newaxis] for data in data_list], axis=0)}
         elif isinstance(value, dict):
-            out_dict =  {**out_dict, **recursive_cat_to_numpy(value)}
+            out_dict = {**out_dict, **recursive_cat_to_numpy(value)}
         elif np.isscalar(value):
-            out_dict = {**out_dict, key: np.concatenate([np.array([data[key]])[np.newaxis] for data in data_list], axis=0)}
+            out_dict = {**out_dict, key: np.concatenate(
+                [np.array([data[key]])[np.newaxis] for data in data_list], axis=0)}
         elif isinstance(value, list):
-            out_dict = {**out_dict, key: np.concatenate([np.array(data[key])[np.newaxis] for data in data_list], axis=0)}
+            out_dict = {**out_dict, key: np.concatenate(
+                [np.array(data[key])[np.newaxis] for data in data_list], axis=0)}
     return out_dict
+
 
 def collate_fn(batch):
     '''
@@ -247,19 +280,26 @@ def collate_fn(batch):
     collated_batch = {}
     for key in batch[0]:
         if key not in ['shapenet_catids', 'shapenet_ids']:
-            collated_batch[key] = default_collate([elem[key] for elem in batch])
+            collated_batch[key] = default_collate(
+                [elem[key] for elem in batch])
         else:
             collated_batch[key] = [elem[key] for elem in batch]
 
     return collated_batch
 
 # Init datasets and dataloaders
+
+
 def my_worker_init_fn(worker_id):
     np.random.seed(np.random.get_state()[1][0] + worker_id)
+
 
 def ISCNet_dataloader(cfg, mode='train'):
     if cfg.config['data']['dataset'] == 'scannet':
         dataset = ISCNet_ScanNet(cfg, mode)
+    elif cfg.config['data']['dataset'] == 'shapenet':
+        # FIXME: Find dataset root and num_sample_points in config file
+        dataset = ShapeNetCoreDataset('/path/to/root//wherever/that/is')
     else:
         raise NotImplementedError
 
