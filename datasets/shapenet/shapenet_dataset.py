@@ -6,6 +6,8 @@ import torch
 import pytorch3d
 from torch.utils.data.dataset import Dataset
 
+from external import binvox_rw
+
 
 def iterate_shapenet(shapenet_path):
     shape_dirs = []
@@ -67,6 +69,12 @@ class ShapeNetCoreDataset(Dataset):
             self.pointcloud_root, *self.shapes_index[index], '.npz')
         pointcloud = np.load(pointcloud_path)
 
+        voxel_path = os.path.join(
+            self.voxel_root, *self.shapes_index[index], '.binvox')
+
+        with open(voxel_path, mode='r') as f:
+            voxels = binvox_rw.read_as_3d_array(f)
+
         """
         mesh = trimesh.base.Trimesh(
             verices=model['verts'], faces=model['faces'])
@@ -90,5 +98,6 @@ class ShapeNetCoreDataset(Dataset):
             'object_points': points,
             'objcet_occupancies': occupancies,
             'object_pointcloud': pointcloud,
+            'object_voxels': voxels,
             'label': label,
         }
