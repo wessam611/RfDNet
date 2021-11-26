@@ -41,15 +41,13 @@ class ShapeNetCoreDataset(Dataset):
             'apply_random_rotation', False)
         self.random_cropping = config['data'].get(
             'apply_random_cropping', False)
-        self.shape_net_core = pytorch3d.datasets.ShapeNetCore(root=self.root)
 
     def __len__(self):
-        return len(self.shape_net_core)
+        return len(self.shapes_index)
 
     def __getitem__(self, index):
         # get model
-        model = self.shape_net_core[index]
-        label = model['label']
+        label = self.shapes_index[index][0]
 
         points_path = os.path.join(
             self.point_root, *self.shapes_index[index], '.npz')
