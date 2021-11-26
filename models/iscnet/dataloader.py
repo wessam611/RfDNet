@@ -298,8 +298,7 @@ def ISCNet_dataloader(cfg, mode='train'):
     if cfg.config['data']['dataset'] == 'scannet':
         dataset = ISCNet_ScanNet(cfg, mode)
     elif cfg.config['data']['dataset'] == 'shapenet':
-        # FIXME: Find dataset root and num_sample_points in config file
-        dataset = ShapeNetCoreDataset('/path/to/root//wherever/that/is')
+        dataset = ShapeNetCoreDataset(cfg)
     else:
         raise NotImplementedError
 
