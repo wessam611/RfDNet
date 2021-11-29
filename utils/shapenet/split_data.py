@@ -7,9 +7,9 @@ from utils.read_and_write import read_json, write_json
 
 
 def split_data():
-    shapenet_train_split = 'datasets/splits/shapenet/shapenet_train.txt'
-    shapenet_val_split = 'datasets/splits/shapenet/shapenet_val.txt'
-    shapenet_overfit_split = 'datasets/splits/shapenet/shapenet_overfit.txt'
+    shapenet_train_split = 'datasets/splits/shapenet/shapenet_train.json'
+    shapenet_val_split = 'datasets/splits/shapenet/shapenet_val.json'
+    shapenet_overfit_split = 'datasets/splits/shapenet/shapenet_overfit.json'
 
     if not os.path.exists(os.path.dirname(shapenet_train_split)):
         os.makedirs(os.path.dirname(shapenet_train_split))

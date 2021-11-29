@@ -5,6 +5,7 @@
 from models.registers import METHODS, MODULES, LOSSES
 from models.network import BaseNetwork
 import torch
+from torch import nn
 from net_utils.nn_distance import nn_distance
 import numpy as np
 from net_utils.ap_helper import parse_predictions, parse_groundtruths, assembly_pred_map_cls, assembly_gt_map_cls
@@ -14,10 +15,11 @@ from torch import optim
 from models.loss import chamfer_func
 from net_utils.box_util import get_3d_box
 
+
 from .network import ISCNet
 
 @METHODS.register_module
-class ISCNet_WEAK(ISCNet):
+class ISCNet_WEAK(BaseNetwork):
     def __init__(self, cfg):
         '''
         load submodules for the network.

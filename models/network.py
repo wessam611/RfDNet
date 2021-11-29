@@ -44,7 +44,7 @@ class BaseNetwork(nn.Module):
             method_name = net_spec['method']
             # load specific optimizer parameters
             optim_spec = self.load_optim_spec(cfg.config, net_spec)
-            subnet = MODULES.get(method_name)(cfg.config, optim_spec)
+            subnet = MODULES.get(method_name)(cfg, optim_spec)
             self.add_module(phase_name, subnet)
 
             '''load corresponding loss functions'''

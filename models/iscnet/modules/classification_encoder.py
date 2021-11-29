@@ -6,11 +6,12 @@ from models.iscnet.modules.layers import ResnetPointnet
 
 @MODULES.register_module
 class ClassEncoder(nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, cfg, optim_spec=None):
+        super(ClassEncoder, self).__init__()
         self.encoder = ResnetPointnet(c_dim=cfg.config['data']['c_dim'],
-                                      dim=self.input_feature_dim + 3 + 128,
+                                      dim=3,#self.input_feature_dim + 3 + 128, # should be gotten from dataset config
                                       hidden_dim=cfg.config['data']['hidden_dim'])
-        self.linear = torch.Linear(cfg.config['data']['c_dim'], cfg.config['data']['num_classes'])
+        self.linear = nn.Linear(cfg.config['data']['c_dim'], cfg.config['data']['num_classes'])
 
     def forward(self, pc):
         features = self.encoder(pc)

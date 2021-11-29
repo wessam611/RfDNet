@@ -35,7 +35,7 @@ model:
     loss: ONet_Loss # reconstruction loss
     weight: 0.7
   class_encode:
-    metod: ClassEncoder
+    method: ClassEncoder
     loss: PriorClassificationLoss
     weight: 0.3
 optimizer:
@@ -56,7 +56,7 @@ bnscheduler:
 train:
   epochs: 240
   phase: 'prior'
-  # freeze: ['backbone', 'voting', 'detection']
+  freeze: []
   batch_size: 2
 val:
   phase: 'prior'

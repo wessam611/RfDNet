@@ -7,27 +7,27 @@ import torch
 from torch.utils.data.dataset import Dataset
 import trimesh
 
-import binvox_rw
-import pc_util
-import transforms
+from . import binvox_rw
+from . import pc_util
+from . import transforms
 
+from utils.read_and_write import read_json
 
 class ShapeNetCoreDataset(Dataset):
     def __init__(self,
-                 config,
-                 *args,
-                 **kwargs):
+                 cfg,
+                 mode):
 
         super(ShapeNetCoreDataset, self).__init__()
-        self.root = Path(config['data']['shapenet_path'])
-        self.shape_index = self.get_shapenet_index()
-        self.num_sample_points = config['data']['num_points']
-        self.points_unpackbits = config['data']['points_unpackbits']
-        self.random_rotation = config['data'].get(
+        self.root = Path(cfg.config['data']['shapenet_path'])
+        self.shape_index = self.get_shapenet_index(cfg.config['data']['split'], mode)
+        self.num_sample_points = cfg.config['data']['num_point']
+        self.points_unpackbits = cfg.config['data']['points_unpackbits']
+        self.random_rotation = cfg.config['data'].get(
             'apply_random_rotation', False)
-        self.random_cropping = config['data'].get(
+        self.random_cropping = cfg.config['data'].get(
             'apply_random_cropping', False)
-        self.random_cropping_mode = config['data'].get(
+        self.random_cropping_mode = cfg.config['data'].get(
             'random_cropping_mode', None)
 
     def __len__(self):
@@ -50,7 +50,7 @@ class ShapeNetCoreDataset(Dataset):
         pointcloud = np.load(os.path.join(self.root, shape_dict['pointcloud']))
         pointcloud = pointcloud['points'].astype(np.float32)
 
-        # apply augmentation according to config
+        # apply augmentation according to cfg.config
         if self.random_rotation:
             pointcloud = transforms.random_rotation(pointcloud)
 
@@ -107,29 +107,8 @@ class ShapeNetCoreDataset(Dataset):
             voxels = binvox_rw.read_as_3d_array(f)
         """
 
-    def get_shapenet_index(self) -> List[dict]:
-        shapenet_path = self.root / 'point'
-        shape_index = []
-
-        cat_ids = [p for p in shapenet_path.iterdir()
-                   if p.is_dir and not p.name.startswith('.')]
-
-        for cat_dir in cat_ids:
-            shape_ids = [p for p in cat_dir.iterdir()
-                         if p.is_file and not p.name.startswith('.')]
-
-            for shape_id in shape_ids:
-                shape_index.append({
-                    'cat_id': cat_dir.name,
-                    'shape_id': shape_id.name,
-                    'point': os.path.join('point', cat_dir.name, shape_id.name),
-                    'pointcloud': os.path.join('pointcloud', cat_dir.name, shape_id.name),
-                    'voxel': os.path.join('voxel', '16', cat_dir.name, f'{shape_id.stem}.binvox'),
-                    'watertight_scaled_simplified': os.path.join('watertight_scaled_simplified',
-                                                                 cat_dir.name, shape_id.name),
-                })
-
-        return shape_index
+    def get_shapenet_index(self, split_path, mode) -> List[dict]:
+        return read_json(f'{split_path}shapenet_{mode}.json')
 
 
 # NOTE: make sure this is commented out when using the dataset
@@ -137,7 +116,7 @@ class ShapeNetCoreDataset(Dataset):
 if __name__ == '__main__':
     # A simple test
 
-    config = {
+    cfg.config = {
         'data': {
             'shapenet_path': 'datasets/ShapeNetv2_data',
             'num_points': 10_000,
@@ -147,7 +126,7 @@ if __name__ == '__main__':
         }
     }
 
-    dataset = ShapeNetCoreDataset(config)
+    dataset = ShapeNetCoreDataset(cfg.config)
 
     shape = dataset[1500]
     print('Label:', shape['label'])
