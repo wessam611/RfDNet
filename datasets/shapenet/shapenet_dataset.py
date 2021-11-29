@@ -5,9 +5,11 @@ from typing import List
 import numpy as np
 import torch
 from torch.utils.data.dataset import Dataset
+import trimesh
 
 import binvox_rw
 import pc_util
+import transforms
 
 
 class ShapeNetCoreDataset(Dataset):
@@ -25,6 +27,8 @@ class ShapeNetCoreDataset(Dataset):
             'apply_random_rotation', False)
         self.random_cropping = config['data'].get(
             'apply_random_cropping', False)
+        self.random_cropping_mode = config['data'].get(
+            'random_cropping_mode', None)
 
     def __len__(self):
         return len(self.shape_index)
@@ -45,6 +49,14 @@ class ShapeNetCoreDataset(Dataset):
         # read pointcloud
         pointcloud = np.load(os.path.join(self.root, shape_dict['pointcloud']))
         pointcloud = pointcloud['points'].astype(np.float32)
+
+        # apply augmentation according to config
+        if self.random_rotation:
+            pointcloud = transforms.random_rotation(pointcloud)
+
+        if self.random_cropping:
+            pointcloud = transforms.random_crop(
+                pointcloud, self.random_cropping_mode)
 
         # sample N points from pointcloud
         pointcloud = pc_util.random_sampling(
@@ -120,7 +132,7 @@ class ShapeNetCoreDataset(Dataset):
         return shape_index
 
 
-# make sure this is commented out when using the dataset
+# NOTE: make sure this is commented out when using the dataset
 """
 if __name__ == '__main__':
     # A simple test
@@ -128,14 +140,16 @@ if __name__ == '__main__':
     config = {
         'data': {
             'shapenet_path': 'datasets/ShapeNetv2_data',
-            'num_points': 1_000,
+            'num_points': 10_000,
             'points_unpackbits': True,
+            'apply_random_cropping': True,
+            'random_cropping_mode': 4
         }
     }
 
     dataset = ShapeNetCoreDataset(config)
 
-    shape = dataset[0]
+    shape = dataset[1500]
     print('Label:', shape['label'])
     print('Points:', shape['object_points'].shape,
           shape['object_points'].dtype)
@@ -148,4 +162,7 @@ if __name__ == '__main__':
 
     print('Voxels', shape['object_voxels'].shape,
           shape['object_voxels'].dtype)
+
+    pcl = trimesh.points.PointCloud(shape['object_pointcloud'].numpy())
+    pcl.show()
 """
