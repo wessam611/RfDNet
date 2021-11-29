@@ -9,10 +9,11 @@ device:
   num_workers: 6
 data:
   dataset: shapenet
-  split: datasets/splits/fullscan
+  split: datasets/splits/shapenet/
   num_point: 1024
   num_target: 256
   vote_factor: 1
+  num_classes: 8
   cluster_sampling: vote_fps
   ap_iou_thresh: 0.25
   no_height: False
