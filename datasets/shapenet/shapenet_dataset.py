@@ -4,7 +4,6 @@ from typing import List
 
 import numpy as np
 import torch
-import pytorch3d
 from torch.utils.data.dataset import Dataset
 
 import binvox_rw
