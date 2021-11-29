@@ -1,5 +1,15 @@
+
 # Project related
+
+**.ply
+**/*.pyc
 **/pretrained_weight.pth
+datasets/ShapeNetv2_data/
+datasets/scannet/processed_data/
+out/iscnet/
+out/pretrained_models/
+runs/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -54,6 +64,8 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+cover/
+
 # Translations
 *.mo
 *.pot
@@ -75,6 +87,8 @@ instance/
 docs/_build/
 
 # PyBuilder
+.pybuilder/
+
 target/
 
 # Jupyter Notebook
@@ -85,7 +99,10 @@ profile_default/
 ipython_config.py
 
 # pyenv
-.python-version
+#   For a library or package, you might want to ignore these files since the code is
+#   intended to run in multiple environments; otherwise, check them in:
+# .python-version
+
 
 # pipenv
 #   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
@@ -131,6 +148,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# macOS related stuff:
+
 # General
 .DS_Store
 .AppleDouble
@@ -157,3 +176,9 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
