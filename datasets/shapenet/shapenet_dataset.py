@@ -7,18 +7,19 @@ import torch
 from torch.utils.data.dataset import Dataset
 import trimesh
 
-import binvox_rw
-import pc_util
-import transforms
+from . import binvox_rw, pc_util, transforms
 
 
 class ShapeNetCoreDataset(Dataset):
     def __init__(self,
                  config,
+                 dataset_config,
                  *args,
                  **kwargs):
 
         super(ShapeNetCoreDataset, self).__init__()
+        self.config = config
+        self.dataset_config = dataset_config
         self.root = Path(config['data']['shapenet_path'])
         self.shape_index = self.get_shapenet_index()
         self.num_sample_points = config['data']['num_points']
@@ -37,6 +38,9 @@ class ShapeNetCoreDataset(Dataset):
         shape_dict = self.shape_index[index]
 
         label = shape_dict['cat_id']
+        label = str(int(label))
+        label = self.dataset_config.shapenet_id_map[label]
+        label = self.dataset_config.type2class[label]
 
         # read points and occupancies
         points_dict = np.load(os.path.join(self.root, shape_dict['point']))
@@ -147,7 +151,7 @@ if __name__ == '__main__':
         }
     }
 
-    dataset = ShapeNetCoreDataset(config)
+    dataset = ShapeNetCoreDataset(config, dataset_config)
 
     shape = dataset[1500]
     print('Label:', shape['label'])
