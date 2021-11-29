@@ -27,9 +27,6 @@ class ShapeNetCoreDataset(Dataset):
         self.random_cropping = config['data'].get(
             'apply_random_cropping', False)
 
-        for k, v in self.shape_index[0].items():
-            print(k, v)
-
     def __len__(self):
         return len(self.shape_index)
 
