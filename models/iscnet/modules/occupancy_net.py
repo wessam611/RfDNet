@@ -31,10 +31,9 @@ class ONet(nn.Module):
         dim = 3
         self.use_cls_for_completion = cfg.config['data']['use_cls_for_completion']
         if not cfg.config['data']['skip_propagate']:
-            # 8 should be gotten from cfg.dataset_config.num_classes
-            c_dim = self.use_cls_for_completion*8 + 128
+            c_dim = self.use_cls_for_completion*cfg.dataset_config.num_class + 128
         else:
-            c_dim = self.use_cls_for_completion * 8 + cfg.config['data']['c_dim']
+            c_dim = self.use_cls_for_completion*cfg.dataset_config.num_class + cfg.config['data']['c_dim']
         self.threshold = cfg.config['data']['threshold']
 
         '''Module Configs'''

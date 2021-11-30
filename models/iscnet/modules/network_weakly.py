@@ -84,5 +84,20 @@ class ISCNet_WEAK(BaseNetwork):
             pass
             # not yet decided
             # return super(ISCNet_WEAK, self).forward(data, export_shape)
+    
+    def loss(self, est_data, gt_data):
+        '''
+        calculate loss of est_out given gt_out.
+        '''
+        end_points, completion_loss = est_data[:2]
+        total_loss = self.detection_loss(end_points, gt_data, self.cfg.dataset_config)
 
+        # --------- INSTANCE COMPLETION ---------
+        if self.cfg.config[self.cfg.config['mode']]['phase'] == 'completion':
+            completion_loss = self.completion_loss(completion_loss)
+            total_loss = {**total_loss, 'completion_loss': completion_loss['completion_loss'],
+                          'mask_loss':completion_loss['mask_loss']}
+            total_loss['total'] += completion_loss['total_loss']
+
+        return total_loss
 
