@@ -146,4 +146,10 @@ def mount_external_config(cfg):
                        'dataset_config': dataset_config}
 
         setattr(cfg, 'eval_config', CONFIG_DICT)
+    
+    if cfg.config['data']['dataset'] == 'shapenet':
+        from configs.shapenet_config import ShapeNetConfig
+        dataset_config = ShapeNetConfig()
+        setattr(cfg, 'dataset_config', dataset_config)
+
     return cfg
