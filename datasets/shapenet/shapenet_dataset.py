@@ -41,6 +41,7 @@ class ShapeNetCoreDataset(Dataset):
         label = str(int(label))
         label = self.dataset_config.shapenet_id_map[label]
         label = self.dataset_config.type2class[label]
+        label = torch.tensor([label])
 
         # read points and occupancies
         points_dict = np.load(os.path.join(self.root, shape_dict['point']))
