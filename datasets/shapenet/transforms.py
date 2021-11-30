@@ -1,7 +1,6 @@
 import random
 
 import numpy as np
-from numpy.random.mtrand import rand
 from pc_util import (
     rotate_point_cloud,
     point_cloud_to_bbox,
