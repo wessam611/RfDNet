@@ -17,6 +17,7 @@ class ShapeNetCoreDataset(Dataset):
                  mode):
 
         super(ShapeNetCoreDataset, self).__init__()
+        self.dataset_config = cfg.dataset_config
         self.root = Path(cfg.config['data']['shapenet_path'])
         self.shape_index = self.get_shapenet_index(cfg.config['data']['split'], mode)
         self.num_sample_points = cfg.config['data']['num_point']
