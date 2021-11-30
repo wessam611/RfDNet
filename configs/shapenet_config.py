@@ -4,7 +4,7 @@ from configs.path_config import ScanNet_OBJ_CLASS_IDS as OBJ_CLASS_IDS, ShapeNet
 import torch
 
 
-class ScannetConfig(object):
+class ShapeNetConfig(object):
     def __init__(self):
         self.num_class = len(OBJ_CLASS_IDS)
         self.num_heading_bin = 12
