@@ -6,7 +6,7 @@ seed: 1
 device:
   use_gpu: True
   gpu_ids: '0'
-  num_workers: 6
+  num_workers: 8
 data:
   dataset: shapenet
   split: datasets/splits/shapenet/
@@ -33,7 +33,7 @@ model:
   completion:
     method: ONet
     loss: ONet_Prior_Loss # reconstruction loss
-    weight: 0.7
+    weight: 0.005
   class_encode:
     method: ClassEncoder
     loss: PriorClassificationLoss
@@ -61,14 +61,6 @@ train:
 val:
   phase: 'prior'
   batch_size: 128
-  use_cls_nms: True
-  use_3d_nms: True
-  ap_iou_thresholds: [0.25, 0.5]
-  faster_eval: True
-  nms_iou: 0.25
-  use_old_type_nms: False
-  per_class_proposal: True
-  conf_thresh: 0.05
 demo:
   phase: 'prior'
 log:

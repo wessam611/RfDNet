@@ -29,12 +29,6 @@ class ISCNet_WEAK(BaseNetwork):
         self.cfg = cfg
 
         phase_names = []
-        if cfg.config[cfg.config['mode']]['phase'] in ['detection']:
-            phase_names += ['backbone', 'voting', 'detection']
-        if cfg.config[cfg.config['mode']]['phase'] in ['completion']:
-            phase_names += ['backbone', 'voting', 'detection', 'completion']
-            if cfg.config['data']['skip_propagate']:
-                phase_names += ['skip_propagation']
         if cfg.config[cfg.config['mode']]['phase'] in ['prior']:
             phase_names += ['completion', 'class_encode']
                 
@@ -88,13 +82,11 @@ class ISCNet_WEAK(BaseNetwork):
         '''
         calculate loss of est_out given gt_out.
         '''
-        completion_loss = est_data[2]
         total_loss = {}
-        if self.cfg.config[self.cfg.config['mode']]['phase'] == 'prior':
-            completion_loss = self.completion_loss(completion_loss)
-            class_loss = self.class_encode_loss(est_data, gt_data)
-            total_loss = {'completion_loss': completion_loss,
-                          'class_loss':class_loss}
-            total_loss['total'] = class_loss + completion_loss
-
+        # if self.cfg.config[self.cfg.config['mode']]['phase'] == 'prior':
+        completion_loss = self.completion_loss(est_data[2])
+        class_loss = self.class_encode_loss(est_data, gt_data)
+        total_loss = {'completion_loss': completion_loss.item(),
+                        'class_loss':class_loss.item()}
+        total_loss['total'] = class_loss + completion_loss
         return total_loss

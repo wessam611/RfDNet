@@ -39,7 +39,6 @@ class ShapeNetCoreDataset(Dataset):
         label = str(int(label))
         label = self.dataset_config.shapenet_id_map[label]
         label = self.dataset_config.type2class[label]
-        label = torch.tensor(label)
 
         # read points and occupancies
         points_dict = np.load(os.path.join(self.root, shape_dict['point']))
@@ -75,12 +74,6 @@ class ShapeNetCoreDataset(Dataset):
         voxel_file = os.path.join(self.root, shape_dict['voxel'])
         with open(voxel_file, 'rb') as f:
             voxels = binvox_rw.read_as_3d_array(f).data
-
-        # covert to PyTorch tensor
-        points = torch.from_numpy(points)
-        occupancies = torch.from_numpy(occupancies)
-        pointcloud = torch.from_numpy(pointcloud)
-        voxels = torch.from_numpy(voxels)
 
         return {
             'object_points': points,
