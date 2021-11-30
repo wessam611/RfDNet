@@ -57,11 +57,11 @@ class ISCNet_WEAK(BaseNetwork):
 
         '''freeze submodules or not'''
         self.freeze_modules(cfg)
-    def sample_for_prior(inputs, sample_size):
-        # temporary naive implementation should be either random
-        # or sampled by removing some chungs of the input pC so it has holes
-        # instead of being evenly distributed
-        return inputs[:, 0:sample_size]
+    # def sample_for_prior(self, inputs, sample_size):
+    #     # temporary naive implementation should be either random
+    #     # or sampled by removing some chungs of the input pC so it has holes
+    #     # instead of being evenly distributed
+    #     return inputs[:, 0:sample_size]
     def forward(self, data, export_shape=False):
         '''
         Forward pass of the network
@@ -70,35 +70,19 @@ class ISCNet_WEAK(BaseNetwork):
         :return: end_points: dict
         '''
         if self.cfg.config[self.cfg.config['mode']]['phase'] == 'prior':
-            pc = data['point_clouds']
-            input_points = self.sample_for_prior(pc, 256) # not sure where the no. of points per object is set
+            pc = data['object_pointcloud']
+            input_points = pc #self.sample_for_prior(pc, 256) # not sure where the no. of points per object is set
             logits, features_for_completion = self.class_encode(input_points)
             completion_loss, shape_example = self.completion.compute_loss(features_for_completion,
-                                                                        data['xyz_query'], # just a 3D grid
-                                                                        data['object_labels'], # class labels for ShapeNet
-                                                                        data['xyz_query'], # Labels in out
+                                                                        data['object_points'], # just a 3D grid
+                                                                        data['object_occupancies'], # Labels in out
+                                                                        data['label'], # class labels for ShapeNet
                                                                         export_shape) 
             return logits, features_for_completion, completion_loss, shape_example # end_points,  BATCH_PROPOSAL_IDs removed
         else:
             pass
             # not yet decided
             # return super(ISCNet_WEAK, self).forward(data, export_shape)
-    
-    def loss(self, est_data, gt_data):
-        '''
-        calculate loss of est_out given gt_out.
-        '''
-        end_points, completion_loss = est_data[:2]
-        total_loss = self.detection_loss(end_points, gt_data, self.cfg.dataset_config)
-
-        # --------- INSTANCE COMPLETION ---------
-        if self.cfg.config[self.cfg.config['mode']]['phase'] == 'completion':
-            completion_loss = self.completion_loss(completion_loss)
-            total_loss = {**total_loss, 'completion_loss': completion_loss['completion_loss'],
-                          'mask_loss':completion_loss['mask_loss']}
-            total_loss['total'] += completion_loss['total_loss']
-
-        return total_loss
 
     def loss(self, est_data, gt_data):
         '''
