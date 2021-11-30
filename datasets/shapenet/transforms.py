@@ -45,7 +45,6 @@ def random_crop(pointcloud: np.array, fraction: int) -> np.array:
     elif fraction == 4:
         axis_1 = random.choice([0, 1, 2])
         axis_2 = random.choice(list({0, 1, 2} - {axis_1}))
-        print(axis_1, axis_2)
         block_1 = random.choice(['less', 'greater'])
         block_2 = random.choice(['less', 'greater'])
 
