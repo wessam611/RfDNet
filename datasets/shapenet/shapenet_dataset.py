@@ -7,9 +7,7 @@ import torch
 from torch.utils.data.dataset import Dataset
 import trimesh
 
-from . import binvox_rw
-from . import pc_util
-from . import transforms
+from . import binvox_rw, pc_util, transforms
 
 from utils.read_and_write import read_json
 
@@ -37,6 +35,10 @@ class ShapeNetCoreDataset(Dataset):
         shape_dict = self.shape_index[index]
 
         label = shape_dict['cat_id']
+        label = str(int(label))
+        label = self.dataset_config.shapenet_id_map[label]
+        label = self.dataset_config.type2class[label]
+        label = torch.tensor([label])
 
         # read points and occupancies
         points_dict = np.load(os.path.join(self.root, shape_dict['point']))
