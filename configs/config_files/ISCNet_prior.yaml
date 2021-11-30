@@ -10,7 +10,7 @@ device:
 data:
   dataset: shapenet
   split: datasets/splits/shapenet/
-  num_point: 1024
+  num_point: 256
   num_target: 256
   vote_factor: 1
   num_classes: 8
@@ -57,10 +57,10 @@ train:
   epochs: 240
   phase: 'prior'
   freeze: []
-  batch_size: 2
+  batch_size: 128
 val:
   phase: 'prior'
-  batch_size: 2
+  batch_size: 128
   use_cls_nms: True
   use_3d_nms: True
   ap_iou_thresholds: [0.25, 0.5]

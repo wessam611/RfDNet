@@ -421,10 +421,11 @@ class ONet_Prior_Loss(BaseLoss):
 
 @LOSSES.register_module
 class PriorClassificationLoss(BaseLoss):
-    def __call__(self, est_data, gt_data, dataset_config):
+    def __call__(self, est_data, gt_data, dataset_config=None):
         '''
         just calculates the loss of logits.. and maybe doing
         some metric learning loss on features
         '''
         logits, _, _ ,_ = est_data
-        return criterion_prior_cls(logits, gt_data["cls_label"])*self.weight
+        gt_label = gt_data['label']
+        return criterion_prior_cls(logits, gt_label)*self.weight

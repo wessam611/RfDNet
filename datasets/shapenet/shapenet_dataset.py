@@ -39,7 +39,7 @@ class ShapeNetCoreDataset(Dataset):
         label = str(int(label))
         label = self.dataset_config.shapenet_id_map[label]
         label = self.dataset_config.type2class[label]
-        label = torch.tensor([label])
+        label = torch.tensor(label)
 
         # read points and occupancies
         points_dict = np.load(os.path.join(self.root, shape_dict['point']))
@@ -64,6 +64,12 @@ class ShapeNetCoreDataset(Dataset):
         # sample N points from pointcloud
         pointcloud = pc_util.random_sampling(
             pointcloud, self.num_sample_points)
+        inds = pc_util.random_sampling(
+            np.arange(0, occupancies.shape[0]),
+            self.num_sample_points
+        )
+        occupancies = occupancies[inds]
+        points = points[inds, :]
 
         # read voxels
         voxel_file = os.path.join(self.root, shape_dict['voxel'])

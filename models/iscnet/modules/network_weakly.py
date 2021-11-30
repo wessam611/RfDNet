@@ -92,7 +92,7 @@ class ISCNet_WEAK(BaseNetwork):
         total_loss = {}
         if self.cfg.config[self.cfg.config['mode']]['phase'] == 'prior':
             completion_loss = self.completion_loss(completion_loss)
-            class_loss = self.class_encode(est_data, gt_data)
+            class_loss = self.class_encode_loss(est_data, gt_data)
             total_loss = {'completion_loss': completion_loss,
                           'class_loss':class_loss}
             total_loss['total'] = class_loss + completion_loss
