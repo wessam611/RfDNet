@@ -62,7 +62,7 @@ class ShapeNetCoreDataset(Dataset):
         pointcloud = np.load(os.path.join(self.root, shape_dict['pointcloud']))
         pointcloud = pointcloud['points'].astype(np.float32)
 
-        apply augmentation according to cfg.config
+        # apply augmentation according to cfg.config
         if self.random_rotation:
             pointcloud = transforms.random_rotation(pointcloud)
 
