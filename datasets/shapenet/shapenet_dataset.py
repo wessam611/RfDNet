@@ -6,6 +6,7 @@ import numpy as np
 import torch
 from torch.utils.data.dataset import Dataset
 import trimesh
+from net_utils.transforms import SubsamplePoints
 
 from . import binvox_rw, pc_util, transforms
 
@@ -22,6 +23,8 @@ class ShapeNetCoreDataset(Dataset):
         self.shape_index = self.get_shapenet_index(cfg.config['data']['split'], mode)
         self.num_sample_points = cfg.config['data']['num_point']
         self.points_unpackbits = cfg.config['data']['points_unpackbits']
+        self.points_sampler = SubsamplePoints(
+            cfg.config['data']['points_subsample'], mode)
         self.random_rotation = cfg.config['data'].get(
             'apply_random_rotation', False)
         self.random_cropping = cfg.config['data'].get(
@@ -47,12 +50,19 @@ class ShapeNetCoreDataset(Dataset):
         if self.points_unpackbits:
             occupancies = np.unpackbits(occupancies)[:points.shape[0]]
         occupancies = occupancies.astype(np.float32)
+        sampled = self.points_sampler({
+            'points': points,
+            'occ': occupancies
+        })
+        points = sampled['points']
+        occupancies = sampled['occ']
+
 
         # read pointcloud
         pointcloud = np.load(os.path.join(self.root, shape_dict['pointcloud']))
         pointcloud = pointcloud['points'].astype(np.float32)
 
-        # apply augmentation according to cfg.config
+        apply augmentation according to cfg.config
         if self.random_rotation:
             pointcloud = transforms.random_rotation(pointcloud)
 
@@ -67,8 +77,6 @@ class ShapeNetCoreDataset(Dataset):
             np.arange(0, occupancies.shape[0]),
             self.num_sample_points
         )
-        occupancies = occupancies[inds]
-        points = points[inds, :]
 
         # read voxels
         voxel_file = os.path.join(self.root, shape_dict['voxel'])
