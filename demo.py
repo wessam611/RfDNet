@@ -277,71 +277,13 @@ def generate(cfg, net, data, post_processing):
 
 def prior_generate(cfg, net, data, post_processing):
     with torch.no_grad():
-        mode = cfg.config['mode']
-        inputs = {'point_clouds': data['point_clouds']}
-        end_points = {}
-        end_points = net.backbone(inputs['point_clouds'], end_points)
+        object_pointcloud = data['object_pointcloud']
 
-        xyz = end_points['fp2_xyz']
-        features = end_points['fp2_features']
-        if_proposal_feature = cfg.config[mode]['phase'] == 'completion'
-        end_points, proposal_features = net.detection(xyz, features, end_points, if_proposal_feature)
-        eval_dict, parsed_predictions = parse_predictions(end_points, data, cfg.eval_config)
+        cls_codes, object_input_features = net.class_encode(input)
+        meshes = net.completion.generator.generate_mesh(object_input_features, cls_codes)
+        print(meshes.shape)
 
-        '''For Completion'''
-        # use 3D NMS to generate sample ids.
-        batch_sample_ids = eval_dict['pred_mask']
 
-        dump_threshold = cfg.config['generation']['dump_threshold']
-
-        BATCH_PROPOSAL_IDs = get_proposal_id(cfg, end_points, data, mode='random', batch_sample_ids=batch_sample_ids,
-                                             DUMP_CONF_THRESH=dump_threshold)
-        # Skip propagate point clouds to box centers.
-        device = end_points['center'].device
-        if not cfg.config['data']['skip_propagate']:
-            gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(1).repeat(1, 128, 1).long().to(device)
-            object_input_features = torch.gather(proposal_features, 2, gather_ids)
-        else:
-            # gather proposal features
-            gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(1).repeat(1, 128, 1).long().to(device)
-            proposal_features = torch.gather(proposal_features, 2, gather_ids)
-
-            # gather proposal centers
-            gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(-1).repeat(1, 1, 3).long().to(device)
-            pred_centers = torch.gather(end_points['center'], 1, gather_ids)
-
-            # gather proposal orientations
-            pred_heading_class = torch.argmax(end_points['heading_scores'], -1)  # B,num_proposal
-            heading_residuals = end_points['heading_residuals_normalized'] * (np.pi / cfg.eval_config[
-                'dataset_config'].num_heading_bin)  # Bxnum_proposalxnum_heading_bin
-            pred_heading_residual = torch.gather(heading_residuals, 2,
-                                                 pred_heading_class.unsqueeze(-1))  # B,num_proposal,1
-            pred_heading_residual.squeeze_(2)
-            heading_angles = cfg.eval_config['dataset_config'].class2angle_cuda(pred_heading_class,
-                                                                                pred_heading_residual)
-            heading_angles = torch.gather(heading_angles, 1, BATCH_PROPOSAL_IDs[..., 0])
-
-            object_input_features = net.skip_propagation.generate(pred_centers, heading_angles, proposal_features,
-                                                                  inputs['point_clouds'])
-
-        batch_size, feat_dim, N_proposals = object_input_features.size()
-        object_input_features = object_input_features.transpose(1, 2).contiguous().view(batch_size * N_proposals,
-                                                                                        feat_dim)
-
-        gather_ids = BATCH_PROPOSAL_IDs[..., 0].unsqueeze(-1).repeat(1, 1, end_points['sem_cls_scores'].size(2))
-        cls_codes_for_completion = torch.gather(end_points['sem_cls_scores'], 1, gather_ids)
-        cls_codes_for_completion = (
-                    cls_codes_for_completion >= torch.max(cls_codes_for_completion, dim=2, keepdim=True)[0]).float()
-        cls_codes_for_completion = cls_codes_for_completion.view(batch_size * N_proposals, -1)
-
-        meshes = net.completion.generator.generate_mesh(object_input_features, cls_codes_for_completion)
-
-    if post_processing:
-        pred_mesh_dict = {'meshes': meshes, 'proposal_ids': BATCH_PROPOSAL_IDs}
-        parsed_predictions = fit_mesh_to_scan(cfg, pred_mesh_dict, parsed_predictions, eval_dict, inputs['point_clouds'], dump_threshold)
-    return end_points, BATCH_PROPOSAL_IDs, eval_dict, meshes, parsed_predictions
-
-    
 
 def save_visualization(cfg, input_data, our_data, output_dir):
     DUMP_CONF_THRESH = cfg.config['generation']['dump_threshold']  # Dump boxes with obj prob larger than that.
