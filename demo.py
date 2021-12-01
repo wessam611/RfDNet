@@ -275,12 +275,13 @@ def generate(cfg, net, data, post_processing):
         parsed_predictions = fit_mesh_to_scan(cfg, pred_mesh_dict, parsed_predictions, eval_dict, inputs['point_clouds'], dump_threshold)
     return end_points, BATCH_PROPOSAL_IDs, eval_dict, meshes, parsed_predictions
 
-def prior_generate(cfg, net, data, post_processing):
+def prior_generate(cfg, net, data, post_processing=False):
     with torch.no_grad():
-        object_pointcloud = data['object_pointcloud']
+        object_pointcloud = data['point_clouds']
 
-        cls_codes, object_input_features = net.class_encode(input)
+        cls_codes, object_input_features = net.class_encode(object_pointcloud)
         meshes = net.completion.generator.generate_mesh(object_input_features, cls_codes)
+        
         print(meshes.shape)
 
 
