@@ -22,7 +22,7 @@ def write_off(file, vertices, faces):
     num_faces = len(faces)
 
     assert num_vertices > 0
-    assert num_faces > 0
+    # assert num_faces > 0
 
     with open(file, 'w') as fp:
         fp.write('OFF\n')
