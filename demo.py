@@ -275,6 +275,21 @@ def generate(cfg, net, data, post_processing):
         parsed_predictions = fit_mesh_to_scan(cfg, pred_mesh_dict, parsed_predictions, eval_dict, inputs['point_clouds'], dump_threshold)
     return end_points, BATCH_PROPOSAL_IDs, eval_dict, meshes, parsed_predictions
 
+def prior_generate(cfg, net, data, post_processing=False):
+    with torch.no_grad():
+        object_pointcloud = data['point_clouds']
+        object_pointcloud = object_pointcloud[:, :, 0:3]
+
+        cls_codes, object_input_features = net.class_encode(object_pointcloud)
+        mesh = net.completion.generator.generate_mesh(object_input_features, cls_codes)
+        mesh = mesh[0]
+
+        return mesh
+
+def save_visualization_prior(cfg, mesh, output_dir):
+    save_path = os.path.join(output_dir, 'shape_reconstruction.ply')
+    mesh.export(save_path)
+
 def save_visualization(cfg, input_data, our_data, output_dir):
     DUMP_CONF_THRESH = cfg.config['generation']['dump_threshold']  # Dump boxes with obj prob larger than that.
 
@@ -406,7 +421,11 @@ def run(cfg):
     '''Run demo'''
     net.train(cfg.config['mode'] == 'train')
     start = time()
-    our_data = generate(cfg, net.module, input_data, post_processing=False)
+    if cfg.config['method'] == 'ISCNet':
+        our_data = generate(cfg, net.module, input_data, post_processing=False)
+    else:
+        our_data = prior_generate(cfg, net.module, input_data, post_processing=False)
+
     end = time()
     print('Time elapsed: %s.' % (end - start))
 
@@ -415,9 +434,12 @@ def run(cfg):
     output_dir = os.path.join('demo/outputs', scene_name)
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
-
-    save_visualization(cfg, input_data, our_data, output_dir)
-    visualize(output_dir, offline=False)
+    if cfg.config['method'] == 'ISCNet':
+        save_visualization(cfg, input_data, our_data, output_dir)
+    else:
+        save_visualization_prior(cfg, our_data, output_dir)
+    
+    #visualize(output_dir, offline=False)
 
 
 

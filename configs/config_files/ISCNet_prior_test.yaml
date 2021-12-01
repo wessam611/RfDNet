@@ -61,15 +61,6 @@ train:
 val:
   phase: 'prior'
   batch_size: 128
-generation:
-  generate_mesh: True
-  resolution_0: 32
-  upsampling_steps: 0
-  use_sampling: False
-  refinement_step: 0
-  simplify_nfaces: Null
-  dump_threshold: 0.5
-  dump_results: True
 demo:
   phase: 'prior'
 log:
