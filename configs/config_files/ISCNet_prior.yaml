@@ -37,10 +37,10 @@ model:
   class_encode:
     method: ClassEncoder
     loss: PriorClassificationLoss
-    weight: 0.3
+    weight: 1
 optimizer:
   method: Adam
-  lr: 1e-4
+  lr: 1e-3
   betas: [0.9, 0.999]
   eps: 1e-08
   weight_decay: 0
@@ -54,22 +54,22 @@ bnscheduler:
   bn_momentum_init: 0.5
   bn_momentum_max: 0.001
 train:
-  epochs: 240
+  epochs: 256
   phase: 'prior'
   freeze: []
-  batch_size: 128
+  batch_size: 64
 val:
   phase: 'prior'
-  batch_size: 128
-generation:
-  generate_mesh: True
-  resolution_0: 32
-  upsampling_steps: 0
-  use_sampling: False
-  refinement_step: 0
-  simplify_nfaces: Null
-  dump_threshold: 0.5
-  dump_results: True
+  batch_size: 64
+# generation:
+#   generate_mesh: True
+#   resolution_0: 32
+#   upsampling_steps: 0
+#   use_sampling: False
+#   refinement_step: 0
+#   simplify_nfaces: Null
+#   dump_threshold: 0.5
+#   dump_results: True
 demo:
   phase: 'prior'
 log:
@@ -77,4 +77,4 @@ log:
   save_results: True
   vis_step: 500
   print_step: 10
-  path: out/iscnet
+  path: out/shapenet
