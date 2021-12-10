@@ -54,17 +54,24 @@ class ShapeNetCoreDataset(Dataset):
             'points': points,
             'occ': occupancies
         })
+        
         points = sampled['points']
         occupancies = sampled['occ']
 
 
         # read pointcloud
         pointcloud = np.load(os.path.join(self.root, shape_dict['pointcloud']))
-        pointcloud = pointcloud['points'].astype(np.float32)
+        pointcloud = pointcloud['points']
 
         # apply augmentation according to cfg.config
         if self.random_rotation:
-            pointcloud = transforms.random_rotation(pointcloud)
+
+            data = {
+                'pointcloud': pointcloud,
+                'points': points,
+            }
+
+            pointcloud, points = transforms.random_rotation(data, max_rotation_angle=0.05)
 
         if self.random_cropping:
             pointcloud = transforms.random_crop(
@@ -73,6 +80,9 @@ class ShapeNetCoreDataset(Dataset):
         # sample N points from pointcloud
         pointcloud = pc_util.random_sampling(
             pointcloud, self.num_sample_points)
+
+        pointcloud = pointcloud.astype(np.float32)
+        points = points.astype(np.float32)
 
         # read voxels
         voxel_file = os.path.join(self.root, shape_dict['voxel'])
