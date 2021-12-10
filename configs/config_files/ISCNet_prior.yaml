@@ -20,6 +20,9 @@ data:
   use_color_detection: False
   use_color_completion: False
   shapenet_path: datasets/ShapeNetv2_data
+  apply_random_rotation: True
+  apply_random_cropping: False
+  random_cropping_mode: 4
   points_unpackbits: True
   points_subsample: [1024, 1024]
   hidden_dim: 512

@@ -1,7 +1,7 @@
 method: ISCNet_WEAK
 resume: False
 finetune: True
-weight: []
+weight: ["out/shapenet/2021-12-08T20:18:49.786841/model_best.pth"]
 seed: 1
 device:
   use_gpu: True
@@ -10,7 +10,7 @@ device:
 data:
   dataset: shapenet
   split: datasets/splits/shapenet/
-  num_point: 256
+  num_point: 2
   num_target: 256
   vote_factor: 1
   num_classes: 8
@@ -61,6 +61,15 @@ train:
 val:
   phase: 'prior'
   batch_size: 128
+generation:
+  generate_mesh: True
+  resolution_0: 32
+  upsampling_steps: 0
+  use_sampling: False
+  refinement_step: 0
+  simplify_nfaces: Null
+  dump_threshold: 0.5
+  dump_results: True
 demo:
   phase: 'prior'
 log:
