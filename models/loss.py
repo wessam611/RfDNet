@@ -429,3 +429,12 @@ class PriorClassificationLoss(BaseLoss):
         logits, _, _ ,_ = est_data
         gt_label = gt_data['label']
         return criterion_prior_cls(logits, gt_label)*self.weight
+
+# Metrics will be implemented exactly like losses
+@LOSSES.register_module
+class ClassificationAccuracy(BaseLoss):
+    def __call__(self, est_data, gt_data, dataset_config=None):
+        logits, _, _ ,_ = est_data
+        pred = torch.argmax(logits, dim=-1)
+        gt_label = gt_data['label']
+        return torch.mean(pred==gt_label).item()

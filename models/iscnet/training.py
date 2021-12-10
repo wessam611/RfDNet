@@ -18,9 +18,10 @@ class Trainer(BaseTrainer):
         :param data (dict): data dictionary
         :return:
         '''
-        loss = self.compute_loss(data)
+        loss, est_data = self.compute_loss(data, True)
         loss['total'] = loss['total'].item()
-        return loss
+        metrics = self.compute_metrics(est_data, data)
+        return {**loss, **metrics}
 
     def visualize_step(self, epoch, phase, iter, data):
         ''' Performs a visualization step.
@@ -58,7 +59,7 @@ class Trainer(BaseTrainer):
                 data[key] = data[key].to(device)
         return data
 
-    def compute_loss(self, data):
+    def compute_loss(self, data, return_est=False):
         '''
         compute the overall loss.
         :param data (dict): data dictionary
@@ -72,4 +73,6 @@ class Trainer(BaseTrainer):
 
         '''computer losses'''
         loss = self.net.module.loss(est_data, data)
+        if return_est:
+            return loss, est_data
         return loss

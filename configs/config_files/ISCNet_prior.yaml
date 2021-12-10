@@ -61,6 +61,8 @@ train:
 val:
   phase: 'prior'
   batch_size: 64
+  metrics:
+      cls_acc: ClassificationAccuracy
 # generation:
 #   generate_mesh: True
 #   resolution_0: 32
