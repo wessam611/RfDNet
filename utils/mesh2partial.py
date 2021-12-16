@@ -1,5 +1,5 @@
 """
-Usage: python mesh2partial.py PATH_TO_MESH (i.e., datasets/ShapeNetv2_data/watertight_scaled_simplified/)
+Usage: python mesh2partial.py PATH_TO_MESH_FOLDER (i.e., datasets/ShapeNetv2_data/watertight_scaled_simplified/)
 """
 
 from pathlib import Path
@@ -13,7 +13,7 @@ from tqdm import tqdm
 def sample_pointcloud(mesh_file):
     mesh = trimesh.load_mesh(mesh_file)
 
-    samples, face_indices = mesh.sample(10_000, return_index=True)
+    samples, face_indices = mesh.sample(50_000, return_index=True)
     normals = mesh.face_normals[face_indices]
 
     x_rand = list(np.random.rand(4))
