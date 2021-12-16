@@ -3,6 +3,7 @@
 
 **.ply
 **/*.pyc
+*.pyc
 **/pretrained_weight.pth
 datasets/ShapeNetv2_data/
 datasets/scannet/processed_data/
@@ -182,3 +183,4 @@ Temporary Items
 
 # Cython debug symbols
 cython_debug/
+runs/*

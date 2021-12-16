@@ -48,6 +48,9 @@ class ISCNet_WEAK(BaseNetwork):
             '''load corresponding loss functions'''
             setattr(self, phase_name + '_loss', LOSSES.get(self.cfg.config['model'][phase_name]['loss'], 'Null')(
                 self.cfg.config['model'][phase_name].get('weight', 1)))
+            '''load corresponding loss functions'''
+        for metric_name, metric_fn in cfg.config['val'].get('metrics', []):
+            setattr(self, metric_name + '_metric', LOSSES.get(metric_fn, 'Null')
 
         '''freeze submodules or not'''
         self.freeze_modules(cfg)
@@ -90,3 +93,11 @@ class ISCNet_WEAK(BaseNetwork):
                         'class_loss':class_loss.item()}
         total_loss['total'] = class_loss + completion_loss
         return total_loss
+    
+    def compute_metrics(self, est_data, gt_data):
+        """
+        """
+        metrics = {}
+        metrics['cls_acc_met'] = self.cls_acc_metric(est_data, gt_center)
+        return metrics
+        

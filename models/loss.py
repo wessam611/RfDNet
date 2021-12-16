@@ -429,3 +429,23 @@ class PriorClassificationLoss(BaseLoss):
         logits, _, _ ,_ = est_data
         gt_label = gt_data['label']
         return criterion_prior_cls(logits, gt_label)*self.weight
+
+# Metrics will be implemented exactly like losses
+@LOSSES.register_module
+class ClassificationAccuracy(BaseLoss):
+    def __call__(self, est_data, gt_data, dataset_config=None):
+        logits, _, _ ,_ = est_data
+        pred = torch.argmax(logits, dim=-1)
+        gt_label = gt_data['label']
+        return torch.mean(pred==gt_label).item()
+
+@LOSSES.register_module
+class BinvoxIOU(BaseLoss):
+    def __call__(self, est_sdf, gt_sdf, dataset_config=None):
+        in_est = (est_sdf<0)
+        in_gt = (est_sdf<0)
+        inter = torch.sum(torch.logical_and(in_est, in_gt), dim=-1)
+        union = torch.sum(torch.logical_or(in_est, in_gt), dim=-1)
+        iou = torch.div(inter, union)
+        return torch.mean(iou).item()
+

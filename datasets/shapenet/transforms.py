@@ -7,16 +7,20 @@ from pc_util import (
 )
 
 
-def random_rotation(pointcloud: np.array) -> np.array:
+def random_rotation(data: np.array, max_rotation_angle=1.0) -> np.array:
     """
     Randomly rotate the given pointcloud.
 
     :param pointcloud: The pointcloud to be rotated
     :return pointcloud: The rotated pointcloud
     """
+    pointcloud = data['pointcloud']
+    points = data['points']
 
-    pointcloud, _ = rotate_point_cloud(pointcloud)
-    return pointcloud
+    pointcloud, rot_mat = rotate_point_cloud(pointcloud)
+    points, _ = rotate_point_cloud(points, rotation_matrix=rot_mat)
+    
+    return pointcloud, points
 
 
 def random_crop(pointcloud: np.array, fraction: int) -> np.array:
