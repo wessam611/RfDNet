@@ -91,6 +91,13 @@ datasets/ShapeNetv2_data/pointcloud
 datasets/ShapeNetv2_data/voxel
 datasets/ShapeNetv2_data/watertight_scaled_simplified
 ```
+
+Download the processed partial point clouds:
+```
+wget https://adl4cv-winter2021.s3.eu-central-1.amazonaws.com/partial_pointclouds.zip
+unzip partial_pointclouds.zip -d datasets/ShapeNetv2_data/
+```
+
 or <br>
 
 1. Download [ShapeNetCore.v2](https://shapenet.org/) to the path below
