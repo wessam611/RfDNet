@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from typing import List
+from random import randint
 
 import numpy as np
 import torch
@@ -12,6 +13,7 @@ from . import binvox_rw, pc_util, transforms
 
 from utils.read_and_write import read_json
 
+
 class ShapeNetCoreDataset(Dataset):
     def __init__(self,
                  cfg,
@@ -20,7 +22,8 @@ class ShapeNetCoreDataset(Dataset):
         super(ShapeNetCoreDataset, self).__init__()
         self.dataset_config = cfg.dataset_config
         self.root = Path(cfg.config['data']['shapenet_path'])
-        self.shape_index = self.get_shapenet_index(cfg.config['data']['split'], mode)
+        self.shape_index = self.get_shapenet_index(
+            cfg.config['data']['split'], mode)
         self.num_sample_points = cfg.config['data']['num_point']
         self.points_unpackbits = cfg.config['data']['points_unpackbits']
         self.points_sampler = SubsamplePoints(
@@ -54,14 +57,20 @@ class ShapeNetCoreDataset(Dataset):
             'points': points,
             'occ': occupancies
         })
-        
+
         points = sampled['points']
         occupancies = sampled['occ']
 
-
         # read pointcloud
-        pointcloud = np.load(os.path.join(self.root, shape_dict['pointcloud']))
-        pointcloud = pointcloud['points']
+        pcl_path = Path(shape_dict['pointcloud'])
+        shape_id = pcl_path.name
+        cat_id = pcl_path.parent.name
+        pcl_path = pcl_path.parent.parent.parent / \
+            'partial_pointcloud' / cat_id / shape_id
+
+        pointcloud = np.load(os.path.join(self.root, pcl_path))
+        rand_idx = randint(0, 3)
+        pointcloud = pointcloud[f'arr_{rand_idx}']
 
         # apply augmentation according to cfg.config
         if self.random_rotation:
@@ -71,7 +80,8 @@ class ShapeNetCoreDataset(Dataset):
                 'points': points,
             }
 
-            pointcloud, points = transforms.random_rotation(data, max_rotation_angle=0.05)
+            pointcloud, points = transforms.random_rotation(
+                data, max_rotation_angle=0.05)
 
         if self.random_cropping:
             pointcloud = transforms.random_crop(
