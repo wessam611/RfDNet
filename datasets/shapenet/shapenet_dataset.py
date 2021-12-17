@@ -66,7 +66,7 @@ class ShapeNetCoreDataset(Dataset):
         shape_id = pcl_path.name
         cat_id = pcl_path.parent.name
         pcl_path = pcl_path.parent.parent.parent / \
-            'partial_pointcloud' / cat_id / shape_id
+            'partial_pointclouds' / cat_id / shape_id
 
         pointcloud = np.load(os.path.join(self.root, pcl_path))
         rand_idx = randint(0, 3)

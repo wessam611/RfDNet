@@ -20,7 +20,7 @@ class Trainer(BaseTrainer):
         '''
         loss, est_data = self.compute_loss(data, True)
         loss['total'] = loss['total'].item()
-        metrics = self.compute_metrics(est_data, data)
+        metrics = self.net.module.compute_metrics(est_data, data)
         return {**loss, **metrics}
 
     def visualize_step(self, epoch, phase, iter, data):

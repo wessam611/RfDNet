@@ -437,7 +437,7 @@ class ClassificationAccuracy(BaseLoss):
         logits, _, _ ,_ = est_data
         pred = torch.argmax(logits, dim=-1)
         gt_label = gt_data['label']
-        return torch.mean(pred==gt_label).item()
+        return (torch.sum(pred==gt_label)/gt_label.shape[0]).item()
 
 @LOSSES.register_module
 class BinvoxIOU(BaseLoss):
