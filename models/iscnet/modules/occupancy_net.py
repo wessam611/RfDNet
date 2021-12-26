@@ -124,7 +124,28 @@ class ONet(nn.Module):
                                        object_surface_normals,
                                        cls_codes_for_completion,
                                        export_shape=False):
-        pass
+        """
+        Compute the loss for OccNet with weak supervision
+
+        :param input_features_for_completion: N_B x D array (number of bboxes, dimension of proposal features)
+        :param object_surface_points: N_B x N_P x 3 array (number of bboxes, number of points, XYZ)
+        :param object_surface_normals: N_B x N_P x 3 array of corresponding normal vectors 
+        """
+
+        # compute GT occupancy values based on surface noramals
+        MU = 0.1  # TODO: set this property via config
+        empty_points = object_surface_points + MU * object_surface_normals
+        occupied_points = object_surface_points - MU * object_surface_normals
+
+        input_points_for_completion = torch.cat(
+            (empty_points, occupied_points), dim=1)
+        input_points_occ_for_completion = torch.ones(
+            input_points_for_completion.shape[:-1])
+        input_points_occ_for_completion[:, :empty_points.shape[1]] = 0.
+
+        # use the regular loss function
+        return self.compute_loss(input_features_for_completion, input_points_for_completion,
+                                 input_points_occ_for_completion, cls_codes_for_completion, export_shape=export_shape)
 
     def forward(self, input_points_for_completion, input_features_for_completion, cls_codes_for_completion, sample=False, **kwargs):
         '''
