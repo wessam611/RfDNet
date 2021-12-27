@@ -87,7 +87,7 @@ or <br>
 Download and unzip the vertex normals for the ScanNet point clouds
 ```
 wget https://adl4cv-winter2021.s3.eu-central-1.amazonaws.com/vertex_normals.zip
-unzip vertex_normals.zip -d datasets/scannet/vertex_normals
+unzip vertex_normals.zip -d datasets/scannet/
 ```
 
 ##### Preprocess ShapeNet data
