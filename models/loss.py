@@ -442,6 +442,7 @@ class ClassificationAccuracy(BaseLoss):
 @LOSSES.register_module
 class BinvoxIOU(BaseLoss):
     def __call__(self, est_sdf, gt_sdf, dataset_config=None):
+        # TODO: not handled yet in data loading
         in_est = (est_sdf<0)
         in_gt = (est_sdf<0)
         inter = torch.sum(torch.logical_and(in_est, in_gt), dim=-1)
