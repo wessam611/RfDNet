@@ -4,6 +4,7 @@
 
 import argparse
 from configs.config_utils import CONFIG
+from utils.shapenet.save_shapenet_encodings import generate_encodings
 
 def parse_args():
     '''PARAMETERS'''
@@ -27,6 +28,12 @@ if __name__ == '__main__':
     cfg.write_config()
 
     '''Run'''
+
+    if cfg.config['mode'] == 'gen_encode':
+        path = cfg.config['save_path']
+        generate_encodings(cfg, path)
+        print('ahahah')
+        exit()
     if cfg.config['mode'] == 'train':
         import train
         train.run(cfg)

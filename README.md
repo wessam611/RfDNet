@@ -67,6 +67,7 @@ You can either directly download the processed samples [[link](https://livebourn
 ```
 datasets/scannet/processed_data/
 ```
+
 or <br>
 
 1. Ask for the [ScanNet](http://www.scan-net.org/) dataset and download it to
@@ -82,6 +83,12 @@ or <br>
    cd RfDNet
    python utils/scannet/gen_scannet_w_orientation.py
    ```
+   
+Download and unzip the vertex normals for the ScanNet point clouds
+```
+wget https://adl4cv-winter2021.s3.eu-central-1.amazonaws.com/vertex_normals.zip
+unzip vertex_normals.zip -d datasets/scannet/
+```
 
 ##### Preprocess ShapeNet data
 You can either directly download the processed data [[link](https://livebournemouthac-my.sharepoint.com/:f:/g/personal/ynie_bournemouth_ac_uk/EtFYCJNn1IdInSg2_QbVU1UB6BYW1sGI5y4D5u8eeaZffQ?e=CHqAyG )] and extract them to `datasets/ShapeNetv2_data/` as below
