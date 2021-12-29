@@ -15,6 +15,7 @@ from utils.scannet.tools import get_box_corners
 from net_utils.transforms import SubsamplePoints
 from external import binvox_rw
 import pickle
+from pathlib import Path
 
 from datasets.shapenet.shapenet_dataset import ShapeNetCoreDataset
 
@@ -56,6 +57,12 @@ class ISCNet_ScanNet(ScanNet):
         data_path = self.split[idx]
         with open(data_path['bbox'], 'rb') as file:
             box_info = pickle.load(file)
+
+        # Normal path
+        scene_id = Path(data_path['scan']).parent.name
+        normal_path = Path(
+            data_path['scan']).parent.parent.parent / 'vertex_normals' / f'{scene_id}.npy'
+
         boxes3D = []
         classes = []
         shapenet_catids = []
@@ -70,6 +77,7 @@ class ISCNet_ScanNet(ScanNet):
         boxes3D = np.array(boxes3D)
         scan_data = np.load(data_path['scan'])
         point_cloud = scan_data['mesh_vertices']
+        point_normals = np.load(normal_path)
         point_votes = scan_data['point_votes']
         point_instance_labels = scan_data['instance_labels']
 
@@ -90,12 +98,16 @@ class ISCNet_ScanNet(ScanNet):
             if np.random.random() > 0.5:
                 # Flipping along the YZ plane
                 point_cloud[:, 0] = -1 * point_cloud[:, 0]
+                point_normals[:, 0] = -1 * point_normals[:, 0]
+
                 boxes3D[:, 0] = -1 * boxes3D[:, 0]
                 boxes3D[:, 6] = np.sign(boxes3D[:, 6]) * np.pi - boxes3D[:, 6]
                 point_votes[:, [1, 4, 7]] = -1 * point_votes[:, [1, 4, 7]]
             if np.random.random() > 0.5:
                 # Flipping along the XZ plane
                 point_cloud[:, 1] = -1 * point_cloud[:, 1]
+                point_normals[:, 1] = -1 * point_normals[:, 1]
+
                 boxes3D[:, 1] = -1 * boxes3D[:, 1]
                 boxes3D[:, 6] = -1 * boxes3D[:, 6]
                 point_votes[:, [2, 5, 8]] = -1 * point_votes[:, [2, 5, 8]]
@@ -115,6 +127,9 @@ class ISCNet_ScanNet(ScanNet):
 
             point_cloud[:, 0:3] = np.dot(
                 point_cloud[:, 0:3], np.transpose(rot_mat))
+
+            point_normals = np.dot(point_normals, np.transpose(rot_mat))
+
             boxes3D[:, 0:3] = np.dot(boxes3D[:, 0:3], np.transpose(rot_mat))
             boxes3D[:, 6] += rot_angle
             point_votes[:, 1:4] = point_votes_end[:, 1:4] - point_cloud[:, 0:3]
@@ -150,6 +165,9 @@ class ISCNet_ScanNet(ScanNet):
 
         point_cloud, choices = pc_util.random_sampling(
             point_cloud, self.num_points, return_choices=True)
+
+        point_normals = point_normals[choices]
+
         point_votes_mask = point_votes[choices, 0]
         point_votes = point_votes[choices, 1:]
         point_instance_labels = point_instance_labels[choices]
@@ -157,6 +175,7 @@ class ISCNet_ScanNet(ScanNet):
         '''For Object Detection'''
         ret_dict = {}
         ret_dict['point_clouds'] = point_cloud.astype(np.float32)
+        ret_dict['point_normals'] = point_normals.astype(np.float32)
         ret_dict['center_label'] = target_bboxes.astype(np.float32)[:, 0:3]
         ret_dict['heading_class_label'] = angle_classes.astype(np.int64)
         ret_dict['heading_residual_label'] = angle_residuals.astype(np.float32)
