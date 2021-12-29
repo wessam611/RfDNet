@@ -7,7 +7,7 @@ from models.iscnet.modules.encoder_latent import Encoder_Latent
 from models.iscnet.modules.occ_decoder import DecoderCBatchNorm
 from torch.nn import functional as F
 from external.common import make_3d_grid
-
+import numpy as np
 
 @MODULES.register_module
 class ONet(nn.Module):
@@ -132,9 +132,18 @@ class ONet(nn.Module):
         :param object_surface_points: N_B x N_P x 3 array (number of bboxes, number of points, XYZ)
         :param object_surface_normals: N_B x N_P x 3 array of corresponding normal vectors 
         """
+        MU = 0.1  # TODO: set this property via config
+        device = input_features_for_completion.device
+        batch_size, _, n_proposals, n_points = object_surface_points.shape
+
+        # reshape points and normals to (batch_size * N_proposals x n_points x 3)
+        object_surface_points = object_surface_points.transpose(1, 2).view(batch_size * n_proposals, n_points, 3)
+        object_surface_normals = object_surface_normals.transpose(1, 2).view(batch_size * n_proposals, n_points, 3)
+
+        np.save('demo/vert.npy', object_surface_points[0].cpu().detach().numpy())
+        np.save('demo/norm.npy', object_surface_normals[0].cpu().detach().numpy())
 
         # compute GT occupancy values based on surface noramals
-        MU = 0.1  # TODO: set this property via config
         empty_points = object_surface_points + MU * object_surface_normals
         occupied_points = object_surface_points - MU * object_surface_normals
         input_points_for_completion = torch.cat(
@@ -143,6 +152,9 @@ class ONet(nn.Module):
         input_points_occ_for_completion = torch.ones(
             input_points_for_completion.shape[:-1])
         input_points_occ_for_completion[..., :empty_points.shape[1]] = 0.
+
+        input_points_for_completion = input_points_for_completion.to(device)
+        input_points_occ_for_completion = input_points_occ_for_completion.to(device)
 
         # use the regular loss function
         return self.compute_loss(input_features_for_completion, input_points_for_completion,

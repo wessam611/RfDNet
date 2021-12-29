@@ -562,20 +562,23 @@ class STN_Group(nn.Module):
             grouped_normals = torch.bmm(rot_matrix.view(batch_size * N_proposals, 3, 3),
                                         grouped_normals.transpose(1, 2).contiguous().view(batch_size * N_proposals, 3, -1))
 
+            """
             grouped_normals = grouped_normals.view(
                 batch_size, N_proposals, 3, -1).transpose(1, 2).contiguous()
 
             grouped_normals = grouped_normals.transpose(2, 1).contiguous().view(
                 batch_size * N_proposals, 3, self.num_points)
+            """
+            
             grouped_normals = torch.bmm(rotation, grouped_normals)
             grouped_normals = grouped_normals.view(
-                batch_size, N_proposals, 3, -1)
+                batch_size, N_proposals, 3, -1).transpose(1, 2)
 
-        if normals is not None:
             if not self.ret_unique_cnt:
                 return grouped_xyz, grouped_features, grouped_normals
             else:
                 return grouped_xyz, grouped_features, unique_cnt, grouped_normals
+        
         else:
             if not self.ret_unique_cnt:
                 return grouped_xyz, grouped_features

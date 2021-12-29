@@ -14,7 +14,6 @@ from torch import optim
 from models.loss import chamfer_func
 from net_utils.box_util import get_3d_box
 
-
 @METHODS.register_module
 class ISCNet(BaseNetwork):
     def __init__(self, cfg):
@@ -432,6 +431,9 @@ class ISCNet(BaseNetwork):
                 input_points_occ_for_completion, \
                 cls_codes_for_completion = self.prepare_data(
                     data, BATCH_PROPOSAL_IDs)
+            
+            print(input_points_for_completion.shape)
+            print(input_points_occ_for_completion.shape)
             """
 
             # if output shape voxels.
