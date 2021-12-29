@@ -64,7 +64,7 @@ train:
   epochs: 240
   phase: 'completion'
   freeze: []
-  batch_size: 8
+  batch_size: 4
 val:
   phase: 'completion'
   batch_size: 8
