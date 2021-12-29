@@ -3,6 +3,8 @@
 # date: Feb, 2020
 # Cite: VoteNet
 
+from numpy.core.fromnumeric import shape
+from numpy.lib.utils import safe_eval
 import torch.utils.data
 from torch.utils.data import DataLoader
 from net_utils.libs import random_sampling_by_instance, rotz, flip_axis_to_camera
@@ -16,6 +18,7 @@ from net_utils.transforms import SubsamplePoints
 from external import binvox_rw
 import pickle
 from pathlib import Path
+from sklearn.neighbors import KDTree
 
 from datasets.shapenet.shapenet_dataset import ShapeNetCoreDataset
 
@@ -37,6 +40,52 @@ class ISCNet_ScanNet(ScanNet):
         self.points_transform = SubsamplePoints(
             cfg.config['data']['points_subsample'], mode)
         self.phase = cfg.config[self.mode]['phase']
+        self.load_shapenet_encodings()
+
+    def load_shapenet_encodings(self):
+        encodings_path = Path(self.cfg.config['data']['shapenet_path']/'encodings')
+        self.cat_to_encodings = {}
+        self.cat_to_ids = []
+
+        cat_ids = [p for p in encodings_path.iterdir()
+                if p.is_dir and not p.name.startswith('.')]
+        for cat_dir in cat_ids:
+            self.cat_to_encodings[cat_dir.name] = []
+            self.cat_to_ids[cat_dir.name] = []
+            shape_ids = [p for p in cat_dir.iterdir()
+                        if p.is_file and not p.name.startswith('.')]
+            for shape_id in shape_ids:
+                shape_path = os.path.join(encodings_path, cat_dir.name, shape_id.name)
+                npz = np.load(shape_path)
+                encoding = npz['encoding']
+                self.cat_to_encodings[cat_dir.name].append(encoding)
+                self.cat_to_ids[cat_dir.name].append(shape_id.name)
+        self.trees = {}
+        for cat_dir in cat_ids:
+            curr_encodings = self.cat_to_encodings[cat_dir.name]
+            self.trees[cat_dir.name] = KDTree(np.asarray(curr_encodings), leaf_size=10)
+    
+    def get_knn(self, cat_id, encoding, k=3):
+        ret_dict = {}
+        shape_ids = []
+        encodings = []
+
+        _, inds = self.trees[cat_id].query(encoding, k=k)
+
+        for ind in inds:
+            shape_id = self.cat_to_ids[ind]
+            shape_ids.append(shape_id)
+            encodings.append(self.cat_to_encodings[cat_id][ind])
+
+        occ_data = self.get_shapenet_points([cat_id], shape_ids)
+        query_points = occ_data['points']
+        occ_data = occ_data['occ']
+        ret_dict['object_points'] = query_points.astype(np.float32)
+        ret_dict['object_points_occ'] = occ_data.astype(np.float32)
+        ret_dict['object_encoding'] = np.asarray(encodings)
+
+        return ret_dict
+        
 
     def __getitem__(self, idx):
         """
