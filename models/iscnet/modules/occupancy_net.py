@@ -122,6 +122,7 @@ class ONet(nn.Module):
                                        input_features_for_completion,
                                        object_surface_points,
                                        object_surface_normals,
+                                       point_segmentation_mask,
                                        cls_codes_for_completion,
                                        export_shape=False):
         """
@@ -136,12 +137,12 @@ class ONet(nn.Module):
         MU = 0.1  # TODO: set this property via config
         empty_points = object_surface_points + MU * object_surface_normals
         occupied_points = object_surface_points - MU * object_surface_normals
-
         input_points_for_completion = torch.cat(
             (empty_points, occupied_points), dim=1)
+
         input_points_occ_for_completion = torch.ones(
             input_points_for_completion.shape[:-1])
-        input_points_occ_for_completion[:, :empty_points.shape[1]] = 0.
+        input_points_occ_for_completion[..., :empty_points.shape[1]] = 0.
 
         # use the regular loss function
         return self.compute_loss(input_features_for_completion, input_points_for_completion,
