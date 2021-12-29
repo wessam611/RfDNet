@@ -66,7 +66,9 @@ class Trainer(BaseTrainer):
         :return:
         '''
         '''load input and ground-truth data'''
+        knn_fn = data.pop('knn_fn', None)
         data = self.to_device(data)
+        data['knn_fn'] = knn_fn
 
         '''network forwarding'''
         est_data = self.net(data)

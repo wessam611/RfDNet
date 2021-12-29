@@ -85,7 +85,7 @@ class ISCNet_ScanNet(ScanNet):
         ret_dict['object_encoding'] = np.asarray(encodings)
 
         return ret_dict
-        
+
 
     def __getitem__(self, idx):
         """
@@ -263,7 +263,8 @@ class ISCNet_ScanNet(ScanNet):
             object_voxels = np.zeros((MAX_NUM_OBJ, *voxels_data.shape[1:]))
             object_voxels[0:boxes3D.shape[0]] = voxels_data
             ret_dict['object_voxels'] = object_voxels.astype(np.float32)
-
+            if self.mode == 'train':
+                ret_dict['knn_fn'] = lambda cat_id, encoding, k=3: self.get_knn(cat_id, encoding, k)
             if self.mode in ['test']:
                 points_iou_data = self.get_shapenet_points(
                     shapenet_catids, shapenet_ids, transform=None)

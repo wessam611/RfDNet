@@ -441,6 +441,18 @@ class ISCNet(BaseNetwork):
             batch_size, feat_dim, N_proposals = object_input_features.size()
             object_input_features = object_input_features.transpose(1, 2).contiguous().view(
                 batch_size * N_proposals, feat_dim)
+            
+            '''
+            TODO: query encodings can be either (object_input_features) or
+                    Prior_classEncode(obj_pointcloud) should be controlled
+                    by config file
+            TODO: needs access to gt cat_id for each proposal
+            TODO: can be optimized
+            if 'knn_fn' in data:
+                for i in range(object_input_features.shape[0]):
+                    # check dataloader.py get_knn
+                    occ_data = data['knn_fn'](cat_id[i], object_input_features[i])
+            '''
 
             completion_loss, shape_example = self.completion.compute_loss_weakly_supervised(object_input_features,
                                                                                             vertecies,
