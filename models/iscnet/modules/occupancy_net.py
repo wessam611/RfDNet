@@ -140,9 +140,6 @@ class ONet(nn.Module):
         object_surface_points = object_surface_points.transpose(1, 2).view(batch_size * n_proposals, n_points, 3)
         object_surface_normals = object_surface_normals.transpose(1, 2).view(batch_size * n_proposals, n_points, 3)
 
-        np.save('demo/vert.npy', object_surface_points[0].cpu().detach().numpy())
-        np.save('demo/norm.npy', object_surface_normals[0].cpu().detach().numpy())
-
         # compute GT occupancy values based on surface noramals
         empty_points = object_surface_points + MU * object_surface_normals
         occupied_points = object_surface_points - MU * object_surface_normals
