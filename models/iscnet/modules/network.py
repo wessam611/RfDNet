@@ -25,12 +25,14 @@ class ISCNet(BaseNetwork):
         self.cfg = cfg
 
         phase_names = []
-        if cfg.config[cfg.config['mode']]['phase'] in ['detection']:
+        if cfg.config[cfg.config['mode']]['phase'] in ['detection', 'w_detection']:
             phase_names += ['backbone', 'voting', 'detection']
-        if cfg.config[cfg.config['mode']]['phase'] in ['completion']:
+        if cfg.config[cfg.config['mode']]['phase'] in ['completion', 'w_completion']:
             phase_names += ['backbone', 'voting', 'detection', 'completion']
             if cfg.config['data']['skip_propagate']:
                 phase_names += ['skip_propagation']
+        if cfg.config[cfg.config['mode']]['phase'] in ['w_detection', 'w_completion']:
+            phase_names += ['class_encode']
 
         if (not cfg.config['model']) or (not phase_names):
             cfg.log_string(
@@ -442,10 +444,16 @@ class ISCNet(BaseNetwork):
             object_input_features = object_input_features.transpose(1, 2).contiguous().view(
                 batch_size * N_proposals, feat_dim)
             
+            
+            
             '''
             TODO: query encodings can be either (object_input_features) or
                     Prior_classEncode(obj_pointcloud) should be controlled
                     by config file
+
+            # _, features_for_completion = self.class_encode(input_points_for_completion)
+
+            should handle if model is run both as weak or with GT
             TODO: needs access to gt cat_id for each proposal
             TODO: can be optimized
             if 'knn_fn' in data:
