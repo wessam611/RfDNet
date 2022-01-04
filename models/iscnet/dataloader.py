@@ -27,6 +27,28 @@ MAX_NUM_OBJ = 64
 MEAN_COLOR_RGB = np.array([121.87661, 109.73591, 95.61673])
 
 
+class KNN_encodings:
+    __instance = None
+    @staticmethod
+    def getKNN(*args):
+        """ Static access method. """
+        if KNN_encodings.__instance != None:
+            return KNN_encodings.__instance.lambda_fn(*args)
+    @staticmethod
+    def setKNN(*args):
+        """ Static access method """
+        if KNN_encodings.__instance == None:
+            return
+        else: 
+            KNN_encodings(*args)
+    def __init__(self, lambda_fn):
+        """ Virtually private constructor. """
+        if KNN_encodings.__instance != None:
+            raise Exception("This class is a singleton!")
+        else:
+            self.lambda_fn = lambda_fn
+            KNN_encodings.__instance = self
+
 class ISCNet_ScanNet(ScanNet):
     def __init__(self, cfg, mode):
         super(ISCNet_ScanNet, self).__init__(cfg, mode)
@@ -43,9 +65,9 @@ class ISCNet_ScanNet(ScanNet):
         self.load_shapenet_encodings()
 
     def load_shapenet_encodings(self):
-        encodings_path = Path(self.cfg.config['data']['shapenet_path']/'encodings')
+        encodings_path = Path(self.config['data']['shapenet_path'])/'encodings'
         self.cat_to_encodings = {}
-        self.cat_to_ids = []
+        self.cat_to_ids = {}
 
         cat_ids = [p for p in encodings_path.iterdir()
                 if p.is_dir and not p.name.startswith('.')]
@@ -239,7 +261,7 @@ class ISCNet_ScanNet(ScanNet):
         ret_dict['scan_idx'] = np.array(idx).astype(np.int64)
 
         '''For Object Completion'''
-        if self.phase == 'completion':
+        if self.phase in ['completion', 'w_completion']:
             object_points = np.zeros(
                 (MAX_NUM_OBJ, np.sum(self.n_points_object), 3))
             object_points_occ = np.zeros(
@@ -264,7 +286,8 @@ class ISCNet_ScanNet(ScanNet):
             object_voxels[0:boxes3D.shape[0]] = voxels_data
             ret_dict['object_voxels'] = object_voxels.astype(np.float32)
             if self.mode == 'train':
-                ret_dict['knn_fn'] = lambda cat_id, encoding, k=3: self.get_knn(cat_id, encoding, k)
+                knn_fn = lambda cat_id, encoding, k=3: self.get_knn(cat_id, encoding, k)
+                KNN_encodings.setKNN(knn_fn)
             if self.mode in ['test']:
                 points_iou_data = self.get_shapenet_points(
                     shapenet_catids, shapenet_ids, transform=None)
@@ -353,7 +376,6 @@ def collate_fn(batch):
                 [elem[key] for elem in batch])
         else:
             collated_batch[key] = [elem[key] for elem in batch]
-
     return collated_batch
 
 # Init datasets and dataloaders

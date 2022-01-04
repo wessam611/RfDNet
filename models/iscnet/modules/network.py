@@ -12,6 +12,7 @@ from external.common import compute_iou
 from net_utils.libs import flip_axis_to_depth, extract_pc_in_box3d, flip_axis_to_camera
 from torch import optim
 from models.loss import chamfer_func
+from models.iscnet.dataloader import KNN_encodings
 from net_utils.box_util import get_3d_box
 
 @METHODS.register_module
@@ -83,7 +84,7 @@ class ISCNet(BaseNetwork):
             end_points['vote_xyz'] = xyz
             end_points['vote_features'] = features
             # --------- DETECTION ---------
-            if_proposal_feature = self.cfg.config[mode]['phase'] == 'completion'
+            if_proposal_feature = self.cfg.config[mode]['phase'] in ['completion', 'w_completion']
             end_points, proposal_features = self.detection(
                 xyz, features, end_points, if_proposal_feature)
 
@@ -92,10 +93,10 @@ class ISCNet(BaseNetwork):
             parsed_gts = parse_groundtruths(data, self.cfg.eval_config)
 
             # --------- INSTANCE COMPLETION ---------
-            evaluate_mesh_mAP = True if self.cfg.config[mode]['phase'] == 'completion' and self.cfg.config['generation'][
+            evaluate_mesh_mAP = True if self.cfg.config[mode]['phase'] in ['completion', 'w_completion'] and self.cfg.config['generation'][
                 'generate_mesh'] and self.cfg.config[mode]['evaluate_mesh_mAP'] else False
 
-            if self.cfg.config[mode]['phase'] == 'completion':
+            if self.cfg.config[mode]['phase'] in ['completion', 'w_completion']:
                 # use 3D NMS to generate sample ids.
                 batch_sample_ids = eval_dict['pred_mask']
                 dump_threshold = self.cfg.eval_config[
@@ -194,7 +195,7 @@ class ISCNet(BaseNetwork):
 
         '''fit mesh points to scans'''
         pred_mesh_dict = None
-        if self.cfg.config[mode]['phase'] == 'completion' and self.cfg.config['generation']['generate_mesh']:
+        if self.cfg.config[mode]['phase'] in ['completion', 'w_completion'] and self.cfg.config['generation']['generate_mesh']:
             pred_mesh_dict = {'meshes': meshes,
                               'proposal_ids': BATCH_PROPOSAL_IDs}
             parsed_predictions = self.fit_mesh_to_scan(
@@ -370,12 +371,12 @@ class ISCNet(BaseNetwork):
         end_points['vote_features'] = features
         # --------- DETECTION ---------
         if_proposal_feature = self.cfg.config[self.cfg.config['mode']
-                                              ]['phase'] == 'completion'
+                                              ]['phase'] in ['completion', 'w_completion']
         end_points, proposal_features = self.detection(
             xyz, features, end_points, if_proposal_feature)
 
         # --------- INSTANCE COMPLETION ---------
-        if self.cfg.config[self.cfg.config['mode']]['phase'] == 'completion':
+        if self.cfg.config[self.cfg.config['mode']]['phase'] in ['completion', 'w_completion']:
             # Get sample ids for training (For limited GPU RAM)
             BATCH_PROPOSAL_IDs = self.get_proposal_id(
                 end_points, data, 'objectness')
@@ -429,6 +430,7 @@ class ISCNet(BaseNetwork):
             """
             # Prepare input-output pairs for shape completion
             # proposal_to_gt_box_w_cls_list (B x N_Limit x 4): (bool_mask, proposal_id, gt_box_id, cls_id)
+            """
             input_points_for_completion, \
                 input_points_occ_for_completion, \
                 cls_codes_for_completion = self.prepare_data(
@@ -436,7 +438,6 @@ class ISCNet(BaseNetwork):
             
             print(input_points_for_completion.shape)
             print(input_points_occ_for_completion.shape)
-            """
 
             # if output shape voxels.
             export_shape = data.get('export_shape', export_shape)
@@ -445,7 +446,7 @@ class ISCNet(BaseNetwork):
                 batch_size * N_proposals, feat_dim)
             
             
-            
+            # _, features_for_completion = self.class_encode(input_points_for_completion)
             '''
             TODO: query encodings can be either (object_input_features) or
                     Prior_classEncode(obj_pointcloud) should be controlled
@@ -459,7 +460,7 @@ class ISCNet(BaseNetwork):
             if 'knn_fn' in data:
                 for i in range(object_input_features.shape[0]):
                     # check dataloader.py get_knn
-                    occ_data = data['knn_fn'](cat_id[i], object_input_features[i])
+                    KNN_encodings.getKNN(cat_id[i], object_input_features[i])
             '''
 
             completion_loss, shape_example = self.completion.compute_loss_weakly_supervised(object_input_features,
@@ -589,7 +590,7 @@ class ISCNet(BaseNetwork):
             end_points, gt_data, self.cfg.dataset_config)
 
         # --------- INSTANCE COMPLETION ---------
-        if self.cfg.config[self.cfg.config['mode']]['phase'] == 'completion':
+        if self.cfg.config[self.cfg.config['mode']]['phase'] in ['completion', 'w_completion']:
             completion_loss = self.completion_loss(completion_loss)
             total_loss = {**total_loss, 'completion_loss': completion_loss['completion_loss'],
                           'mask_loss': completion_loss['mask_loss']}
