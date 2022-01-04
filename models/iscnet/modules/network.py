@@ -421,8 +421,9 @@ class ISCNet(BaseNetwork):
 
                 # TODO: check config file for vertex normal processing
                 if 'point_normals' in data:
-                    object_input_features, mask_loss, vertecies, vertex_normals, point_seg_mask = self.skip_propagation(
+                    object_input_features, mask_loss, vertices, vertex_normals, point_seg_mask = self.skip_propagation(
                         pred_centers, heading_angles, proposal_features, inputs['point_clouds'], data['point_instance_labels'], proposal_instance_labels, data['point_normals'])
+
                 else:
                     object_input_features, mask_loss = self.skip_propagation(
                         pred_centers, heading_angles, proposal_features, inputs['point_clouds'], data['point_instance_labels'], proposal_instance_labels)
@@ -430,22 +431,17 @@ class ISCNet(BaseNetwork):
             """
             # Prepare input-output pairs for shape completion
             # proposal_to_gt_box_w_cls_list (B x N_Limit x 4): (bool_mask, proposal_id, gt_box_id, cls_id)
+            # input_points_for_completion, \
+            #     input_points_occ_for_completion, \
+            #     cls_codes_for_completion = self.prepare_data(
+            #         data, BATCH_PROPOSAL_IDs)
             """
-            input_points_for_completion, \
-                input_points_occ_for_completion, \
-                cls_codes_for_completion = self.prepare_data(
-                    data, BATCH_PROPOSAL_IDs)
-            
-            print(input_points_for_completion.shape)
-            print(input_points_occ_for_completion.shape)
-
             # if output shape voxels.
             export_shape = data.get('export_shape', export_shape)
             batch_size, feat_dim, N_proposals = object_input_features.size()
             object_input_features = object_input_features.transpose(1, 2).contiguous().view(
                 batch_size * N_proposals, feat_dim)
-            
-            
+
             # _, features_for_completion = self.class_encode(input_points_for_completion)
             '''
             TODO: query encodings can be either (object_input_features) or
@@ -464,7 +460,7 @@ class ISCNet(BaseNetwork):
             '''
 
             completion_loss, shape_example = self.completion.compute_loss_weakly_supervised(object_input_features,
-                                                                                            vertecies,
+                                                                                            vertices,
                                                                                             vertex_normals,
                                                                                             point_seg_mask,
                                                                                             None,

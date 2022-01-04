@@ -134,11 +134,8 @@ class ONet(nn.Module):
         """
         MU = 0.1  # TODO: set this property via config
         device = input_features_for_completion.device
-        batch_size, _, n_proposals, n_points = object_surface_points.shape
 
         # reshape points and normals to (batch_size * N_proposals x n_points x 3)
-        object_surface_points = object_surface_points.transpose(1, 2).view(batch_size * n_proposals, n_points, 3)
-        object_surface_normals = object_surface_normals.transpose(1, 2).view(batch_size * n_proposals, n_points, 3)
 
         # compute GT occupancy values based on surface noramals
         empty_points = object_surface_points + MU * object_surface_normals
