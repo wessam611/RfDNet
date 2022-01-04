@@ -9,6 +9,7 @@ from torch.nn import functional as F
 from external.common import make_3d_grid
 import numpy as np
 
+
 @MODULES.register_module
 class ONet(nn.Module):
     ''' Occupancy Network class.
@@ -143,9 +144,11 @@ class ONet(nn.Module):
         input_points_for_completion = torch.cat(
             (empty_points, occupied_points), dim=1)
 
-        input_points_occ_for_completion = torch.ones(
-            input_points_for_completion.shape[:-1])
-        input_points_occ_for_completion[..., :empty_points.shape[1]] = 0.
+        # set occupancies and mask out background points
+        empty_points_occs = torch.zeros_like(empty_points)
+        occupied_points_occs = torch.ones_like(occupied_points) * point_segmentation_mask.float()
+        input_points_occ_for_completion = torch.cat(
+            (empty_points_occs, occupied_points_occs), dim=1)
 
         input_points_for_completion = input_points_for_completion.to(device)
         input_points_occ_for_completion = input_points_occ_for_completion.to(device)
