@@ -145,8 +145,8 @@ class ONet(nn.Module):
             (empty_points, occupied_points), dim=1)
 
         # set occupancies and mask out background points
-        empty_points_occs = torch.zeros_like(empty_points)
-        occupied_points_occs = torch.ones_like(occupied_points) * point_segmentation_mask.float()
+        empty_points_occs = torch.zeros_like(empty_points[..., 0])
+        occupied_points_occs = torch.ones_like(occupied_points[..., 0]) * point_segmentation_mask.float()
         input_points_occ_for_completion = torch.cat(
             (empty_points_occs, occupied_points_occs), dim=1)
 
