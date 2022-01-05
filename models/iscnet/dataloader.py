@@ -104,15 +104,13 @@ class ISCNet_ScanNet(ScanNet):
                 shape_id = self.cat_to_ids[cat_id][ind]
                 shape_ids.append(shape_id)
                 encodings.append(self.cat_to_encodings[cat_id][ind])
-            occ_data = self.get_shapenet_points([cat_id], shape_ids)
+            occ_data = self.get_shapenet_points([cat_id]*k, shape_ids, transform=self.points_transform)
             query_points = occ_data['points']
             occ_data = occ_data['occ']
             tmp_dict['object_points'] = query_points.astype(np.float32)
             tmp_dict['object_points_occ'] = occ_data.astype(np.float32)
-            ret_dict['object_encoding'] = np.asarray(encodings).astype(np.float32)
+            tmp_dict['object_encoding'] = np.asarray(encodings).astype(np.float32)
             return tmp_dict
-        
-
         # if number of processes is not specified, it uses the number of core
         ret_list = [mapped_fn((cat_ids[i],features[i])) for i in range(cat_ids.shape[0])]
         #pool.map(dummy_fn, [(cat_ids[i],features[i]) for i in range(cat_ids.shape[0])])
