@@ -431,11 +431,14 @@ class ISCNet(BaseNetwork):
             """
             # Prepare input-output pairs for shape completion
             # proposal_to_gt_box_w_cls_list (B x N_Limit x 4): (bool_mask, proposal_id, gt_box_id, cls_id)
-            # input_points_for_completion, \
-            #     input_points_occ_for_completion, \
-            #     cls_codes_for_completion = self.prepare_data(
-            #         data, BATCH_PROPOSAL_IDs)
             """
+            _, _, cls_codes_for_completion = self.prepare_data(
+                    data, BATCH_PROPOSAL_IDs)
+            
+            vertices, vertex_normals, object_input_features, cls_codes_for_completion, \
+                point_seg_mask = self.mask_proposals_out(vertices, vertex_normals, object_input_features, 
+                                            cls_codes_for_completion, point_seg_mask)
+                
             # if output shape voxels.
             export_shape = data.get('export_shape', export_shape)
             batch_size, feat_dim, N_proposals = object_input_features.size()
@@ -475,6 +478,25 @@ class ISCNet(BaseNetwork):
         completion_loss = torch.cat(
             [completion_loss.unsqueeze(0), mask_loss.unsqueeze(0)], dim=0)
         return end_points, completion_loss.unsqueeze(0), shape_example, BATCH_PROPOSAL_IDs
+
+    def mask_proposals_out(self, xyz, normals, input_features, cls_codes, point_seg_mask, num_points_th = 64):
+                 # should be handled in config
+                batch_size, _, N_proposals, N_points = xyz.shape
+                xyz = xyz.transpose(1, 3)
+                xyz = xyz.transpose(1, 2)
+                xyz = xyz.view(batch_size*N_proposals, N_points, -1)
+                normals = normals.transpose(1, 3)
+                normals = normals.transpose(1, 2)
+                normals = normals.view(batch_size*N_proposals, N_points, -1)
+
+                xyz = xyz[torch.sum(point_seg_mask, dim=-1)>num_points_th]
+                normals = normals[torch.sum(point_seg_mask, dim=-1)>num_points_th]
+                input_features = input_features[..., torch.sum(point_seg_mask, dim=-1)>num_points_th]
+                cls_codes = cls_codes[torch.sum(point_seg_mask, dim=-1)>num_points_th]
+                point_seg_mask = point_seg_mask[torch.sum(point_seg_mask, dim=-1)>num_points_th]
+                xyz = xyz*point_seg_mask.unsqueeze(dim=-1)
+                normals = normals*point_seg_mask.unsqueeze(dim=-1)
+                return xyz, normals, input_features, cls_codes, point_seg_mask
 
     def get_proposal_id(self, end_points, data, mode='random', batch_sample_ids=None, DUMP_CONF_THRESH=-1.):
         '''

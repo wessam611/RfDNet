@@ -155,19 +155,6 @@ class SkipPropagation(nn.Module):
         if input_point_normals is not None:
             point_seg_mask = point_seg_mask.view(
                 batch_size*N_proposals, N_points, -1)[..., 0]
-            num_points_th = 128 # should be handled in config
-            xyz = xyz.transpose(1, 3)
-            xyz = xyz.transpose(1, 2)
-            xyz = xyz.view(batch_size*N_proposals, N_points, -1)
-            normals = normals.transpose(1, 3)
-            normals = normals.transpose(1, 2)
-            normals = normals.view(batch_size*N_proposals, N_points, -1)
-            xyz = xyz[torch.sum(point_seg_mask, dim=-1)>num_points_th]
-            normals = normals[torch.sum(point_seg_mask, dim=-1)>num_points_th]
-            input_features = input_features[..., torch.sum(point_seg_mask, dim=-1)>num_points_th]
-            point_seg_mask = point_seg_mask[torch.sum(point_seg_mask, dim=-1)>num_points_th]
-            xyz = xyz*point_seg_mask.unsqueeze(dim=-1)
-            normals = normals*point_seg_mask.unsqueeze(dim=-1)
             return input_features, point_mask_loss, xyz, normals, point_seg_mask
         else:
             return input_features, point_mask_loss
