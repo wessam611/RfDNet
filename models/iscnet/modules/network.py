@@ -443,34 +443,20 @@ class ISCNet(BaseNetwork):
             if (True): # using prior decoder or rfd features (config)
                 _, knn_feats = self.class_encode(vertices*torch.unsqueeze(point_seg_mask, dim=-1))
             knn_dict = KNN_encodings.getKNN(cls_codes_for_completion.detach().clone().cpu(), knn_feats.detach().clone().cpu())
+            knn_dict = {key: torch.from_numpy(knn_dict[key]).to(vertices.device) for key in knn_dict.keys()}
             # if output shape voxels.
             export_shape = data.get('export_shape', export_shape)
             batch_size, feat_dim, N_proposals = object_input_features.size()
             object_input_features = object_input_features.transpose(1, 2).contiguous().view(
                 batch_size * N_proposals, feat_dim)
 
-            # _, features_for_completion = self.class_encode(input_points_for_completion)
-            '''
-            TODO: query encodings can be either (object_input_features) or
-                    Prior_classEncode(obj_pointcloud) should be controlled
-                    by config file
-
-            # _, features_for_completion = self.class_encode(input_points_for_completion)
-
-            should handle if model is run both as weak or with GT
-            TODO: needs access to gt cat_id for each proposal
-            TODO: can be optimized
-            if 'knn_fn' in data:
-                for i in range(object_input_features.shape[0]):
-                    # check dataloader.py get_knn
-                    KNN_encodings.getKNN(cat_id[i], object_input_features[i])
-            '''
-
             completion_loss, shape_example = self.completion.compute_loss_weakly_supervised(object_input_features,
                                                                                             vertices,
                                                                                             vertex_normals,
                                                                                             point_seg_mask,
-                                                                                            None,
+                                                                                            cls_codes_for_completion,
+                                                                                            knn_dict,
+                                                                                            knn_feats,
                                                                                             export_shape=False)
 
         else:

@@ -1,5 +1,6 @@
 # Occupancy Networks
 import torch
+from torch._C import dtype
 import torch.nn as nn
 from models.registers import MODULES
 import torch.distributions as dist
@@ -63,7 +64,7 @@ class ONet(nn.Module):
                                          preprocessor=None)
 
     def compute_loss(self, input_features_for_completion, input_points_for_completion, input_points_occ_for_completion,
-                     cls_codes_for_completion, export_shape=False):
+                     cls_codes_for_completion, export_shape=False, weights=None):
         '''
         Compute loss for OccNet
         :param input_features_for_completion (N_B x D): Number of bounding boxes x Dimension of proposal feature.
@@ -90,7 +91,11 @@ class ONet(nn.Module):
             # KL-divergence
             p0_z = self.get_prior_z(self.z_dim, device)
             kl = dist.kl_divergence(q_z, p0_z).sum(dim=-1)
-            loss = kl.mean()
+            loss = kl
+            if weights == None:
+                loss = loss.mean()
+            else:
+                loss = (loss*weights).mean()
         else:
             z = torch.empty(size=(batch_size, 0), device=device)
             loss = 0.
@@ -100,7 +105,13 @@ class ONet(nn.Module):
                              z, input_features_for_completion, **kwargs).logits
         loss_i = F.binary_cross_entropy_with_logits(
             logits, input_points_occ_for_completion, reduction='none')
-        loss = loss + loss_i.sum(-1).mean()
+        loss_ce = loss_i.sum(-1)
+        if weights == None:
+            loss_ce = loss_ce.mean()
+        else:
+            loss_ce = (loss_ce*weights).mean()
+
+        loss = loss + loss_ce
 
         '''Export Shape Voxels.'''
         if export_shape:
@@ -125,6 +136,8 @@ class ONet(nn.Module):
                                        object_surface_normals,
                                        point_segmentation_mask,
                                        cls_codes_for_completion,
+                                       knn_dict,
+                                       knn_feats,
                                        export_shape=False):
         """
         Compute the loss for OccNet with weak supervision
@@ -133,7 +146,9 @@ class ONet(nn.Module):
         :param object_surface_points: N_B x N_P x 3 array (number of bboxes, number of points, XYZ)
         :param object_surface_normals: N_B x N_P x 3 array of corresponding normal vectors 
         """
-        MU = 0.1  # TODO: set this property via config
+        MU = 0.01  # TODO: set this property via config
+        SW = 0.7 # TODO: set this property via config (sampled weight)
+        KW = 0.3 # TODO: set this property via config (knn weight)
         device = input_features_for_completion.device
 
         # reshape points and normals to (batch_size * N_proposals x n_points x 3)
@@ -153,9 +168,24 @@ class ONet(nn.Module):
         input_points_for_completion = input_points_for_completion.to(device)
         input_points_occ_for_completion = input_points_occ_for_completion.to(device)
 
-        # use the regular loss function
-        return self.compute_loss(input_features_for_completion, input_points_for_completion,
+        sampled_loss, voxel_out = self.compute_loss(input_features_for_completion, input_points_for_completion,
                                  input_points_occ_for_completion, cls_codes_for_completion, export_shape=export_shape)
+        normalizer = torch.zeros(input_points_for_completion.shape[0], dtype=torch.float32, device=device)
+        knn_loss = torch.zeros(sampled_loss.shape, dtype=torch.float32, device=device)
+        for i in range(knn_dict['object_encoding'].shape[1]):
+            dist = (knn_dict['object_encoding'][:, i, :] - knn_feats).pow(2).sum(-1).sqrt()
+            normalizer += torch.pow(dist, -1)
+        normalizer = torch.pow(normalizer, -1)
+        # DOESN'T WORK THAT WAY
+        for i in range(knn_dict['object_encoding'].shape[1]):
+            dist = (knn_dict['object_encoding'][:, i, :] - knn_feats).pow(2).sum(-1).sqrt()
+            curr_loss, _ = self.compute_loss(input_features_for_completion, knn_dict['object_points'][:, i, :],
+                                 knn_dict['object_points_occ'][:, i, :], cls_codes_for_completion, 
+                                 export_shape=False, weights=normalizer*torch.pow(dist, -1))
+            knn_loss += curr_loss
+        
+        return SW*sampled_loss + KW*knn_loss, voxel_out
+        
 
     def forward(self, input_points_for_completion, input_features_for_completion, cls_codes_for_completion, sample=False, **kwargs):
         '''
