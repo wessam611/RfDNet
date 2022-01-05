@@ -438,7 +438,11 @@ class ISCNet(BaseNetwork):
             vertices, vertex_normals, object_input_features, cls_codes_for_completion, \
                 point_seg_mask = self.mask_proposals_out(vertices, vertex_normals, object_input_features, 
                                             cls_codes_for_completion, point_seg_mask)
-                
+            
+            knn_feats = object_input_features
+            if (True): # using prior decoder or rfd features (config)
+                _, knn_feats = self.class_encode(vertices*torch.unsqueeze(point_seg_mask, dim=-1))
+            knn_dict = KNN_encodings.getKNN(cls_codes_for_completion.detach().clone().cpu(), knn_feats.detach().clone().cpu())
             # if output shape voxels.
             export_shape = data.get('export_shape', export_shape)
             batch_size, feat_dim, N_proposals = object_input_features.size()

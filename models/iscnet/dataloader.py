@@ -19,8 +19,10 @@ from external import binvox_rw
 import pickle
 from pathlib import Path
 from sklearn.neighbors import KDTree
+import multiprocessing
 
 from datasets.shapenet.shapenet_dataset import ShapeNetCoreDataset
+from configs.path_config import ShapeNetFolders
 
 default_collate = torch.utils.data.dataloader.default_collate
 MAX_NUM_OBJ = 64
@@ -38,8 +40,6 @@ class KNN_encodings:
     def setKNN(*args):
         """ Static access method """
         if KNN_encodings.__instance == None:
-            return
-        else: 
             KNN_encodings(*args)
     def __init__(self, lambda_fn):
         """ Virtually private constructor. """
@@ -81,31 +81,43 @@ class ISCNet_ScanNet(ScanNet):
                 npz = np.load(shape_path)
                 encoding = npz['encoding']
                 self.cat_to_encodings[cat_dir.name].append(encoding)
-                self.cat_to_ids[cat_dir.name].append(shape_id.name)
+                self.cat_to_ids[cat_dir.name].append(shape_id.name.split('.')[0])
         self.trees = {}
         for cat_dir in cat_ids:
             curr_encodings = self.cat_to_encodings[cat_dir.name]
             self.trees[cat_dir.name] = KDTree(np.asarray(curr_encodings), leaf_size=10)
+        knn_fn = lambda cat_ids, encodings, k=3: self.get_knn(cat_ids, encodings, k)
+        KNN_encodings.setKNN(knn_fn)
     
-    def get_knn(self, cat_id, encoding, k=3):
+    def get_knn(self, cat_ids, features, k):
         ret_dict = {}
-        shape_ids = []
-        encodings = []
+        def mapped_fn(p):
+            tmp_dict = {}
+            shape_ids = []
+            encodings = []
+            cat_id, encoding = p
+            cat_id = torch.argmax(cat_id)
+            cat_id = ShapeNetFolders[cat_id]
+            _, inds = self.trees[cat_id].query(encoding.reshape(1, -1), k=k)
 
-        _, inds = self.trees[cat_id].query(encoding, k=k)
+            for ind in inds[0]:
+                shape_id = self.cat_to_ids[cat_id][ind]
+                shape_ids.append(shape_id)
+                encodings.append(self.cat_to_encodings[cat_id][ind])
+            occ_data = self.get_shapenet_points([cat_id], shape_ids)
+            query_points = occ_data['points']
+            occ_data = occ_data['occ']
+            tmp_dict['object_points'] = query_points.astype(np.float32)
+            tmp_dict['object_points_occ'] = occ_data.astype(np.float32)
+            ret_dict['object_encoding'] = np.asarray(encodings).astype(np.float32)
+            return tmp_dict
+        
 
-        for ind in inds:
-            shape_id = self.cat_to_ids[ind]
-            shape_ids.append(shape_id)
-            encodings.append(self.cat_to_encodings[cat_id][ind])
-
-        occ_data = self.get_shapenet_points([cat_id], shape_ids)
-        query_points = occ_data['points']
-        occ_data = occ_data['occ']
-        ret_dict['object_points'] = query_points.astype(np.float32)
-        ret_dict['object_points_occ'] = occ_data.astype(np.float32)
-        ret_dict['object_encoding'] = np.asarray(encodings)
-
+        # if number of processes is not specified, it uses the number of core
+        ret_list = [mapped_fn((cat_ids[i],features[i])) for i in range(cat_ids.shape[0])]
+        #pool.map(dummy_fn, [(cat_ids[i],features[i]) for i in range(cat_ids.shape[0])])
+        for key in ret_list[0].keys():
+            ret_dict[key] = np.asarray([ret_list[i][key] for i in range(cat_ids.shape[0])])
         return ret_dict
 
 
@@ -285,9 +297,6 @@ class ISCNet_ScanNet(ScanNet):
             object_voxels = np.zeros((MAX_NUM_OBJ, *voxels_data.shape[1:]))
             object_voxels[0:boxes3D.shape[0]] = voxels_data
             ret_dict['object_voxels'] = object_voxels.astype(np.float32)
-            if self.mode == 'train':
-                knn_fn = lambda cat_id, encoding, k=3: self.get_knn(cat_id, encoding, k)
-                KNN_encodings.setKNN(knn_fn)
             if self.mode in ['test']:
                 points_iou_data = self.get_shapenet_points(
                     shapenet_catids, shapenet_ids, transform=None)
