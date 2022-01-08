@@ -441,7 +441,7 @@ class ISCNet(BaseNetwork):
             
             knn_feats = object_input_features
             if (True): # using prior decoder or rfd features (config)
-                _, knn_feats = self.class_encode(vertices*torch.unsqueeze(point_seg_mask, dim=-1))
+                _, knn_feats = self.class_encode(vertices*torch.unsqueeze(point_seg_mask, dim=-1), point_seg_mask=point_seg_mask)
             knn_dict = KNN_encodings.getKNN(cls_codes_for_completion.detach().clone().cpu(), knn_feats.detach().clone().cpu())
             knn_dict = {key: torch.from_numpy(knn_dict[key]).to(vertices.device) for key in knn_dict.keys()}
             # if output shape voxels.
@@ -470,23 +470,21 @@ class ISCNet(BaseNetwork):
         return end_points, completion_loss.unsqueeze(0), shape_example, BATCH_PROPOSAL_IDs
 
     def mask_proposals_out(self, xyz, normals, input_features, cls_codes, point_seg_mask, num_points_th = 64):
-                 # should be handled in config
-                batch_size, _, N_proposals, N_points = xyz.shape
-                xyz = xyz.transpose(1, 3)
-                xyz = xyz.transpose(1, 2)
-                xyz = xyz.view(batch_size*N_proposals, N_points, -1)
-                normals = normals.transpose(1, 3)
-                normals = normals.transpose(1, 2)
-                normals = normals.view(batch_size*N_proposals, N_points, -1)
+        # should be handled in config
+        batch_size, _, N_proposals, N_points = xyz.shape
+        xyz = xyz.transpose(1, 3)
+        xyz = xyz.transpose(1, 2)
+        xyz = xyz.view(batch_size*N_proposals, N_points, -1)
+        normals = normals.transpose(1, 3)
+        normals = normals.transpose(1, 2)
+        normals = normals.view(batch_size*N_proposals, N_points, -1)
 
-                xyz = xyz[torch.sum(point_seg_mask, dim=-1)>num_points_th]
-                normals = normals[torch.sum(point_seg_mask, dim=-1)>num_points_th]
-                input_features = input_features[..., torch.sum(point_seg_mask, dim=-1)>num_points_th]
-                cls_codes = cls_codes[torch.sum(point_seg_mask, dim=-1)>num_points_th]
-                point_seg_mask = point_seg_mask[torch.sum(point_seg_mask, dim=-1)>num_points_th]
-                xyz = xyz*point_seg_mask.unsqueeze(dim=-1)
-                normals = normals*point_seg_mask.unsqueeze(dim=-1)
-                return xyz, normals, input_features, cls_codes, point_seg_mask
+        xyz = xyz[torch.sum(point_seg_mask, dim=-1)>num_points_th]
+        normals = normals[torch.sum(point_seg_mask, dim=-1)>num_points_th]
+        input_features = input_features[..., torch.sum(point_seg_mask, dim=-1)>num_points_th]
+        cls_codes = cls_codes[torch.sum(point_seg_mask, dim=-1)>num_points_th]
+        point_seg_mask = point_seg_mask[torch.sum(point_seg_mask, dim=-1)>num_points_th]
+        return xyz, normals, input_features, cls_codes, point_seg_mask
 
     def get_proposal_id(self, end_points, data, mode='random', batch_sample_ids=None, DUMP_CONF_THRESH=-1.):
         '''

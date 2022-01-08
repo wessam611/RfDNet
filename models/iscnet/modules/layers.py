@@ -361,7 +361,7 @@ class ResnetPointnet(nn.Module):
         self.actvn = nn.ReLU()
         self.pool = maxpool
 
-    def forward(self, p):
+    def forward(self, p, point_seg_mask=None):
         batch_size, T, D = p.size()
 
         # output size: B x T X F
@@ -383,7 +383,8 @@ class ResnetPointnet(nn.Module):
         net = torch.cat([net, pooled], dim=2)
 
         net = self.block_4(net)
-
+        if point_seg_mask is not None:
+            net = net*point_seg_mask.unsqueeze(dim=-1)
         # Recude to  B x F
         net = self.pool(net, dim=1)
 

@@ -13,7 +13,7 @@ class ClassEncoder(nn.Module):
                                       hidden_dim=cfg.config['data']['hidden_dim'])
         self.linear = nn.Linear(cfg.config['data']['c_dim'], cfg.dataset_config.num_class)
 
-    def forward(self, pc):
-        features = self.encoder(pc)
+    def forward(self, pc, point_seg_mask=None):
+        features = self.encoder(pc, point_seg_mask=point_seg_mask)
         logits = self.linear(features)
         return logits, features
