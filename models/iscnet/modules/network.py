@@ -603,5 +603,6 @@ class ISCNet(BaseNetwork):
 
         return total_loss
 
-    def compute_metrics(est_data, data):
+
+    def compute_metrics(self, est_data, data):
         return {}
