@@ -1,7 +1,7 @@
 method: ISCNet
 resume: False
 finetune: True
-weight: ['out/shapenet/2021-12-07T20:24:03.610578/model_best.pth']
+weight: ['out/pretrained_models/pretrained_weight.pth']
 seed: 10
 device:
   use_gpu: True
@@ -23,6 +23,7 @@ data:
   points_subsample: [1024, 1024]
   hidden_dim: 512
   c_dim: 512
+  num_points_th: 128
   z_dim: 32
   threshold: 0.5
   completion_limit_in_train: 10
@@ -43,12 +44,14 @@ model:
     loss: Null
   class_encode:
     method: ClassEncoder
-    loss: PriorClassificationLoss
-    weight: 1
+    loss: Null
   completion:
     method: ONet
     loss: ONet_Loss
-    weight: 0.005
+    weight: 1
+    mu: 0.01
+    sampled_point_weight: 0.7
+    knn_weight: 0.3
 optimizer:
   method: Adam
   lr: 5e-5
@@ -68,10 +71,11 @@ train:
   epochs: 240
   phase: 'w_completion'
   freeze: []
-  batch_size: 1
+  batch_size: 4
+  use_class_encode_knn: True
 val:
   phase: 'completion'
-  batch_size: 1
+  batch_size: 8
   use_cls_nms: True
   use_3d_nms: True
   ap_iou_thresholds: [0.25, 0.5]

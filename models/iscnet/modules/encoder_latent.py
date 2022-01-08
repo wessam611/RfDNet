@@ -46,7 +46,7 @@ class Encoder_Latent(nn.Module):
             self.actvn = lambda x: F.leaky_relu(x, 0.2)
             self.pool = torch.mean
 
-    def forward(self, p, x, c=None, **kwargs):
+    def forward(self, p, x, c=None, point_seg_mask=None, **kwargs):
         # output size: B x T X F
         net = self.fc_0(x.unsqueeze(-1))
         net = net + self.fc_pos(p)
@@ -65,8 +65,11 @@ class Encoder_Latent(nn.Module):
         net = self.fc_3(self.actvn(net))
         # Reduce
         #  to  B x F
-        net = self.pool(net, dim=1)
-
+        if point_seg_mask is not None:
+            net = net*point_seg_mask.unsqueeze(dim=-1)
+            net = torch.div(torch.sum(net, dim=1), torch.sum(point_seg_mask, dim=-1).unsqueeze(dim=-1))
+        else: 
+            net = self.pool(net, dim=1)
         mean = self.fc_mean(net)
         logstd = self.fc_logstd(net)
 
