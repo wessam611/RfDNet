@@ -164,9 +164,6 @@ class ONet(nn.Module):
         occupied_points_occs = torch.ones_like(occupied_points[..., 0]) * point_segmentation_mask.float()
         input_points_occ_for_completion = torch.cat(
             (empty_points_occs, occupied_points_occs), dim=1)
-        
-        print(input_points_for_completion.shape)
-        print(input_points_occ_for_completion.shape, '\n')
 
         input_points_for_completion = input_points_for_completion.to(device)
         input_points_occ_for_completion = input_points_occ_for_completion.to(device)
