@@ -602,3 +602,6 @@ class ISCNet(BaseNetwork):
             total_loss['total'] += completion_loss['total_loss']
 
         return total_loss
+
+    def compute_metrics(self, est_data, data):
+        return {}
