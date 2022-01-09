@@ -447,10 +447,11 @@ class ISCNet(BaseNetwork):
             knn_dict = {key: torch.from_numpy(knn_dict[key]).to(vertices.device) for key in knn_dict.keys()}
             # if output shape voxels.
             export_shape = data.get('export_shape', export_shape)
+            """
             batch_size, feat_dim, N_proposals = object_input_features.size()
             object_input_features = object_input_features.transpose(1, 2).contiguous().view(
                 batch_size * N_proposals, feat_dim)
-
+            """
             completion_loss, shape_example = self.completion.compute_loss_weakly_supervised(object_input_features,
                                                                                             vertices,
                                                                                             vertex_normals,
@@ -478,9 +479,16 @@ class ISCNet(BaseNetwork):
         normals = normals.transpose(1, 3)
         normals = normals.transpose(1, 2)
         normals = normals.view(batch_size*N_proposals, N_points, -1)
+        input_features = input_features.transpose(1, 2)
+        input_features = input_features.view(batch_size * N_proposals, -1)
         xyz = xyz[torch.sum(point_seg_mask, dim=-1)>num_points_th]
         normals = normals[torch.sum(point_seg_mask, dim=-1)>num_points_th]
-        input_features = input_features[..., torch.sum(point_seg_mask, dim=-1)>num_points_th]
+        input_features = input_features[torch.sum(point_seg_mask, dim=-1)>num_points_th]
+        """
+        print(input_features.shape)
+        print(xyz.shape)
+        print(normals.shape)
+        """
         cls_codes = cls_codes[torch.sum(point_seg_mask, dim=-1)>num_points_th]
         point_seg_mask = point_seg_mask[torch.sum(point_seg_mask, dim=-1)>num_points_th]
         return xyz, normals, input_features, cls_codes, point_seg_mask
