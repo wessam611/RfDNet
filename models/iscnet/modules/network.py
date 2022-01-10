@@ -440,27 +440,35 @@ class ISCNet(BaseNetwork):
                                             cls_codes_for_completion, point_seg_mask, 
                                             num_points_th=self.cfg.config['data'].get('num_points_th', 256))
             
-            knn_feats = object_input_features
-            if self.cfg.config[self.cfg.config['mode']].get('use_class_encode_knn', None): # using prior decoder or rfd features (config)
-                _, knn_feats = self.class_encode(vertices*torch.unsqueeze(point_seg_mask, dim=-1), point_seg_mask=point_seg_mask)
-            knn_dict = KNN_encodings.getKNN(cls_codes_for_completion.detach().clone().cpu(), knn_feats.detach().clone().cpu())
-            knn_dict = {key: torch.from_numpy(knn_dict[key]).to(vertices.device) for key in knn_dict.keys()}
-            # if output shape voxels.
-            export_shape = data.get('export_shape', export_shape)
-            """
-            batch_size, feat_dim, N_proposals = object_input_features.size()
-            object_input_features = object_input_features.transpose(1, 2).contiguous().view(
-                batch_size * N_proposals, feat_dim)
-            """
-            completion_loss, shape_example = self.completion.compute_loss_weakly_supervised(object_input_features,
-                                                                                            vertices,
-                                                                                            vertex_normals,
-                                                                                            point_seg_mask,
-                                                                                            cls_codes_for_completion,
-                                                                                            knn_dict,
-                                                                                            knn_feats,
-                                                                                            export_shape=False)
-
+            # Skip completion if all proposals were masked out
+            if vertices.shape[0] > 0:
+                
+                knn_feats = object_input_features
+                if self.cfg.config[self.cfg.config['mode']].get('use_class_encode_knn', None): # using prior decoder or rfd features (config)
+                    _, knn_feats = self.class_encode(vertices*torch.unsqueeze(point_seg_mask, dim=-1), point_seg_mask=point_seg_mask)
+                knn_dict = KNN_encodings.getKNN(cls_codes_for_completion.detach().clone().cpu(), knn_feats.detach().clone().cpu())
+                knn_dict = {key: torch.from_numpy(knn_dict[key]).to(vertices.device) for key in knn_dict.keys()}
+                # if output shape voxels.
+                export_shape = data.get('export_shape', export_shape)
+                """
+                batch_size, feat_dim, N_proposals = object_input_features.size()
+                object_input_features = object_input_features.transpose(1, 2).contiguous().view(
+                    batch_size * N_proposals, feat_dim)
+                """
+                completion_loss, shape_example = self.completion.compute_loss_weakly_supervised(object_input_features,
+                                                                                                vertices,
+                                                                                                vertex_normals,
+                                                                                                point_seg_mask,
+                                                                                                cls_codes_for_completion,
+                                                                                                knn_dict,
+                                                                                                knn_feats,
+                                                                                                export_shape=False)
+            else:
+                BATCH_PROPOSAL_IDs = None
+                completion_loss = torch.tensor(0.).to(features.device)
+                mask_loss = torch.tensor(0.).to(features.device)
+                shape_example = None
+        
         else:
             BATCH_PROPOSAL_IDs = None
             completion_loss = torch.tensor(0.).to(features.device)
@@ -484,11 +492,6 @@ class ISCNet(BaseNetwork):
         xyz = xyz[torch.sum(point_seg_mask, dim=-1)>num_points_th]
         normals = normals[torch.sum(point_seg_mask, dim=-1)>num_points_th]
         input_features = input_features[torch.sum(point_seg_mask, dim=-1)>num_points_th]
-        """
-        print(input_features.shape)
-        print(xyz.shape)
-        print(normals.shape)
-        """
         cls_codes = cls_codes[torch.sum(point_seg_mask, dim=-1)>num_points_th]
         point_seg_mask = point_seg_mask[torch.sum(point_seg_mask, dim=-1)>num_points_th]
         return xyz, normals, input_features, cls_codes, point_seg_mask
