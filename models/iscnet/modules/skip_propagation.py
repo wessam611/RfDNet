@@ -146,6 +146,11 @@ class SkipPropagation(nn.Module):
             batch_size * N_proposals, N_points, input_features.shape[-1])
         input_features = input_features * point_seg_mask.float()
 
+        point_seg_maskGT = instance_point_masks.long().view(
+            batch_size*N_proposals, N_points)
+        point_seg_maskGT = point_seg_maskGT.unsqueeze(-1).expand(
+            batch_size * N_proposals, N_points, input_features.shape[-1])
+
         input_features = self.encoder(input_features)
         input_features = input_features.view(
             batch_size, N_proposals, -1).transpose(1, 2)
@@ -153,8 +158,8 @@ class SkipPropagation(nn.Module):
         # input_features = self.self_attn(input_features)
 
         if input_point_normals is not None:
-            point_seg_mask = point_seg_mask.view(
+            point_seg_maskGT = point_seg_maskGT.view(
                 batch_size*N_proposals, N_points, -1)[..., 0]
-            return input_features, point_mask_loss, xyz, normals, point_seg_mask
+            return input_features, point_mask_loss, xyz, normals, point_seg_maskGT
         else:
             return input_features, point_mask_loss
