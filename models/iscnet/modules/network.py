@@ -56,6 +56,12 @@ class ISCNet(BaseNetwork):
                 self.cfg.config['model'][phase_name].get('weight', 1)))
 
         '''freeze submodules or not'''
+        if cfg.config['mode'] == 'train':
+            if 'occ_decoder' in cfg.config['train']['freeze']:
+                for param in self.completion.decoder.parameters():
+                    param.reuires_grad = False
+                cfg.log_string('The module: occ_decoder is fixed.')
+        
         self.freeze_modules(cfg)
 
     def generate(self, data):
