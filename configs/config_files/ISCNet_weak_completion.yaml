@@ -1,7 +1,7 @@
 method: ISCNet
 resume: False
 finetune: True
-weight: ['out/iscnet/weak_detection/model_best.pth'] # Pretrained weak detection
+weight: ['out/iscnet/2022-01-13T12:53:11.752590/model_best.pth'] # Pretrained detection and shape completion
 seed: 10
 device:
   use_gpu: True
@@ -23,7 +23,7 @@ data:
   points_subsample: [1024, 1024]
   hidden_dim: 512
   c_dim: 512
-  num_points_th: 256
+  num_points_th: 64
   z_dim: 32
   threshold: 0.5
   completion_limit_in_train: 10
@@ -49,9 +49,9 @@ model:
     method: ONet
     loss: ONet_Loss
     weight: 1
-    mu: 0.01
-    sampled_point_weight: 0.7
-    knn_weight: 0.3
+    mu: 0.02
+    sampled_point_weight: 0.6
+    knn_weight: 0.4
 optimizer:
   method: Adam
   lr: 1e-4
@@ -59,7 +59,7 @@ optimizer:
   eps: 1e-08
   weight_decay: 0
 scheduler:
-  patience: 20
+  patience: 10
   factor: 0.1
   threshold: 0.01
 bnscheduler:
@@ -70,7 +70,7 @@ bnscheduler:
 train:
   epochs: 240
   phase: 'w_completion'
-  freeze: ['backbone', 'voting', 'detection', 'occ_decoder']
+  freeze: ['backbone', 'voting', 'detection', 'completion', 'class_encode']
   batch_size: 2
   use_class_encode_knn: True
 val:

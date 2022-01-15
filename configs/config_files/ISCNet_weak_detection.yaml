@@ -1,7 +1,7 @@
 method: ISCNet
 resume: False
 finetune: True
-weight: ['out/pretrained_models/pretrained_weight.pth'] # PriorNet weights
+weight: ['out/shapenet/2021-12-23T14:25:45.495333/model_best.pth'] # PriorNet weights
 seed: 10
 device:
   use_gpu: True
@@ -54,7 +54,7 @@ model:
     knn_weight: 0.3
 optimizer:
   method: Adam
-  lr: 5e-5
+  lr: 1e-3
   betas: [0.9, 0.999]
   eps: 1e-08
   weight_decay: 0
@@ -68,13 +68,13 @@ bnscheduler:
   bn_momentum_init: 0.5
   bn_momentum_max: 0.001
 train:
-  epochs: 240
+  epochs: 400
   phase: 'w_detection'
   freeze: []
-  batch_size: 8
+  batch_size: 16
 val:
   phase: 'detection'
-  batch_size: 8
+  batch_size: 16
   use_cls_nms: True
   use_3d_nms: True
   ap_iou_thresholds: [0.25, 0.5]
