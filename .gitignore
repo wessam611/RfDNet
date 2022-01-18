@@ -2,12 +2,12 @@
 # Project related
 
 **.ply
-**/*.pyc
-*.pyc
 **/pretrained_weight.pth
 datasets/ShapeNetv2_data/
 datasets/scannet/processed_data/
+datasets/scannet/vertex_normals/
 out/iscnet/
+out/shapenet/
 out/pretrained_models/
 runs/
 

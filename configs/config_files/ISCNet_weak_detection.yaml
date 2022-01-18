@@ -1,7 +1,7 @@
 method: ISCNet
 resume: False
 finetune: True
-weight: ['out/iscnet/2021-03-30T22:48:41.879548/model_best.pth']
+weight: ['out/shapenet/2021-12-23T14:25:45.495333/model_best.pth'] # PriorNet weights
 seed: 10
 device:
   use_gpu: True
@@ -23,6 +23,7 @@ data:
   points_subsample: [1024, 1024]
   hidden_dim: 512
   c_dim: 512
+  num_points_th: 256
   z_dim: 32
   threshold: 0.5
   completion_limit_in_train: 10
@@ -41,13 +42,19 @@ model:
   skip_propagation:
     method: SkipPropagation
     loss: Null
+  class_encode:
+    method: ClassEncoder
+    loss: Null
   completion:
     method: ONet
     loss: ONet_Loss
-    weight: 0.005
+    weight: 1
+    mu: 0.01
+    sampled_point_weight: 0.7
+    knn_weight: 0.3
 optimizer:
   method: Adam
-  lr: 5e-5
+  lr: 1e-3
   betas: [0.9, 0.999]
   eps: 1e-08
   weight_decay: 0
@@ -61,13 +68,13 @@ bnscheduler:
   bn_momentum_init: 0.5
   bn_momentum_max: 0.001
 train:
-  epochs: 240
-  phase: 'completion'
+  epochs: 400
+  phase: 'w_detection'
   freeze: []
-  batch_size: 4
+  batch_size: 16
 val:
-  phase: 'completion'
-  batch_size: 8
+  phase: 'detection'
+  batch_size: 16
   use_cls_nms: True
   use_3d_nms: True
   ap_iou_thresholds: [0.25, 0.5]
@@ -77,7 +84,7 @@ val:
   per_class_proposal: True
   conf_thresh: 0.05
 demo:
-  phase: 'completion'
+  phase: 'detection'
 log:
   vis_path: visualization
   save_results: True

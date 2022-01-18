@@ -50,7 +50,8 @@ class _PointnetSAModuleBase(nn.Module):
         xyz_flipped = xyz.transpose(1, 2).contiguous()
         new_xyz = (
             pointnet2_utils.gather_operation(
-                xyz_flipped, pointnet2_utils.furthest_point_sample(xyz, self.npoint)
+                xyz_flipped, pointnet2_utils.furthest_point_sample(
+                    xyz, self.npoint)
             )
             .transpose(1, 2)
             .contiguous()
@@ -63,7 +64,8 @@ class _PointnetSAModuleBase(nn.Module):
                 xyz, new_xyz, features
             )  # (B, C, npoint, nsample)
 
-            new_features = self.mlps[i](new_features)  # (B, mlp[-1], npoint, nsample)
+            # (B, mlp[-1], npoint, nsample)
+            new_features = self.mlps[i](new_features)
             new_features = F.max_pool2d(
                 new_features, kernel_size=[1, new_features.size(3)]
             )  # (B, mlp[-1], npoint, 1)
@@ -104,7 +106,8 @@ class PointnetSAModuleMSG(_PointnetSAModuleBase):
             radius = radii[i]
             nsample = nsamples[i]
             self.groupers.append(
-                pointnet2_utils.QueryAndGroup(radius, nsample, use_xyz=use_xyz, sample_uniformly=sample_uniformly)
+                pointnet2_utils.QueryAndGroup(
+                    radius, nsample, use_xyz=use_xyz, sample_uniformly=sample_uniformly)
                 if npoint is not None
                 else pointnet2_utils.GroupAll(use_xyz)
             )
@@ -186,7 +189,8 @@ class PointnetSAModuleVotes(nn.Module):
                                                          sample_uniformly=sample_uniformly,
                                                          ret_unique_cnt=ret_unique_cnt)
         else:
-            self.grouper = pointnet2_utils.GroupAll(use_xyz, ret_grouped_xyz=True)
+            self.grouper = pointnet2_utils.GroupAll(
+                use_xyz, ret_grouped_xyz=True)
 
         mlp_spec = mlp
         if use_xyz and len(mlp_spec) > 0:
@@ -218,7 +222,8 @@ class PointnetSAModuleVotes(nn.Module):
 
         xyz_flipped = xyz.transpose(1, 2).contiguous()
         if inds is None:
-            inds = pointnet2_utils.furthest_point_sample(xyz, self.npoint) if self.npoint is not None else None
+            inds = pointnet2_utils.furthest_point_sample(
+                xyz, self.npoint) if self.npoint is not None else None
         else:
             assert (inds.shape[1] == self.npoint)
         new_xyz = pointnet2_utils.gather_operation(
@@ -286,7 +291,8 @@ class PointnetSAModuleMSGVotes(nn.Module):
             radius = radii[i]
             nsample = nsamples[i]
             self.groupers.append(
-                pointnet2_utils.QueryAndGroup(radius, nsample, use_xyz=use_xyz, sample_uniformly=sample_uniformly)
+                pointnet2_utils.QueryAndGroup(
+                    radius, nsample, use_xyz=use_xyz, sample_uniformly=sample_uniformly)
                 if npoint is not None else pointnet2_utils.GroupAll(use_xyz)
             )
             mlp_spec = mlps[i]
@@ -404,6 +410,7 @@ class PointnetFPModule(nn.Module):
 
         return new_features.squeeze(-1)
 
+
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv2d') != -1:
@@ -416,6 +423,7 @@ def weights_init(m):
             torch.nn.init.constant_(m.weight.data, 0.0)
         if hasattr(m, 'bias') and hasattr(m.bias, 'data'):
             torch.nn.init.constant_(m.bias.data, 0.0)
+
 
 class STN3d(nn.Module):
     def __init__(self, num_points=2500):
@@ -438,10 +446,11 @@ class STN3d(nn.Module):
 
         self.apply(weights_init)
 
-    def forward(self, grouped_xyz):
+    def forward(self, grouped_xyz, return_rotation=False):
         device = grouped_xyz.device
         batch_size, _, N_proposals, _ = grouped_xyz.size()
-        grouped_xyz = grouped_xyz.transpose(2, 1).contiguous().view(batch_size * N_proposals, 3, self.num_points)
+        grouped_xyz = grouped_xyz.transpose(2, 1).contiguous().view(
+            batch_size * N_proposals, 3, self.num_points)
 
         x = self.relu(self.bn1(self.conv1(grouped_xyz)))
         x = self.relu(self.bn2(self.conv2(x)))
@@ -453,16 +462,21 @@ class STN3d(nn.Module):
         x = self.relu(self.bn5(self.fc2(x)))
         x = self.fc3(x)
 
-        iden = torch.tensor([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]]).float().view(1, 12).to(device)
+        iden = torch.tensor([[1, 0, 0, 0], [0, 1, 0, 0], [
+                            0, 0, 1, 0]]).float().view(1, 12).to(device)
 
         x = x + iden
         x = x.view(batch_size * N_proposals, 3, 4)
 
         # coordinates tranformation
-        grouped_xyz = torch.bmm(x[:, :, :3], grouped_xyz) + x[:, :, 3].unsqueeze(-1)
+        grouped_xyz = torch.bmm(
+            x[:, :, :3], grouped_xyz) + x[:, :, 3].unsqueeze(-1)
         grouped_xyz = grouped_xyz.view(batch_size, N_proposals, 3, -1)
 
-        return grouped_xyz.transpose(1, 2)
+        if return_rotation:
+            return grouped_xyz.transpose(1, 2), x[:, :, :3]
+        else:
+            return grouped_xyz.transpose(1, 2)
 
 
 class STN_Group(nn.Module):
@@ -493,7 +507,8 @@ class STN_Group(nn.Module):
     def forward(self, xyz: torch.Tensor,
                 features: torch.Tensor = None,
                 new_xyz: torch.Tensor = None,
-                orientations: torch.Tensor = None) -> (torch.Tensor, torch.Tensor):
+                orientations: torch.Tensor = None,
+                normals: torch.Tensor = None) -> (torch.Tensor, torch.Tensor):
         r"""
         Parameters
         ----------
@@ -504,17 +519,28 @@ class STN_Group(nn.Module):
         new_xyz : torch.Tensor
             (B, npoint, 3) tensor of the coordinates to be grouped at
         """
-        if not self.ret_unique_cnt:
-            grouped_features, grouped_xyz = self.grouper(
-                xyz, new_xyz, features
-            )  # (B, C, npoint, nsample)
+        if normals is not None:
+            if not self.ret_unique_cnt:
+                grouped_features, grouped_xyz, grouped_normals = self.grouper(
+                    xyz, new_xyz, features, normals
+                )  # (B, C, npoint, nsample)
+            else:
+                grouped_features, grouped_xyz, unique_cnt, grouped_normals = self.grouper(
+                    xyz, new_xyz, features, normals
+                )  # (B, C, npoint, nsample), (B,3,npoint,nsample), (B,npoint)
         else:
-            grouped_features, grouped_xyz, unique_cnt = self.grouper(
-                xyz, new_xyz, features
-            )  # (B, C, npoint, nsample), (B,3,npoint,nsample), (B,npoint)
+            if not self.ret_unique_cnt:
+                grouped_features, grouped_xyz = self.grouper(
+                    xyz, new_xyz, features
+                )  # (B, C, npoint, nsample)
+            else:
+                grouped_features, grouped_xyz, unique_cnt = self.grouper(
+                    xyz, new_xyz, features
+                )  # (B, C, npoint, nsample), (B,3,npoint,nsample), (B,npoint)
 
         # align objects to the canonical system.
-        rot_matrix = torch.zeros(size=[*orientations.size(), 3, 3]).to(orientations.device)
+        rot_matrix = torch.zeros(
+            size=[*orientations.size(), 3, 3]).to(orientations.device)
         rot_matrix[..., 0, 0] = torch.cos(orientations)
         rot_matrix[..., 0, 1] = torch.sin(orientations)
         rot_matrix[..., 1, 1] = torch.cos(orientations)
@@ -526,15 +552,38 @@ class STN_Group(nn.Module):
         grouped_xyz = torch.bmm(rot_matrix.view(batch_size * N_proposals, 3, 3),
                                 grouped_xyz.transpose(1, 2).contiguous().view(batch_size * N_proposals, 3, -1))
 
-        grouped_xyz = grouped_xyz.view(batch_size, N_proposals, 3, -1).transpose(1, 2).contiguous()
+        grouped_xyz = grouped_xyz.view(
+            batch_size, N_proposals, 3, -1).transpose(1, 2).contiguous()
 
         # Involve STN to learn a spatial transformation (3 X 4 matrix)
-        grouped_xyz = self.stn3d(grouped_xyz)
+        grouped_xyz, rotation = self.stn3d(grouped_xyz, return_rotation=True)
 
-        if not self.ret_unique_cnt:
-            return grouped_xyz, grouped_features
+        if normals is not None:
+            grouped_normals = torch.bmm(rot_matrix.view(batch_size * N_proposals, 3, 3),
+                                        grouped_normals.transpose(1, 2).contiguous().view(batch_size * N_proposals, 3, -1))
+
+            """
+            grouped_normals = grouped_normals.view(
+                batch_size, N_proposals, 3, -1).transpose(1, 2).contiguous()
+
+            grouped_normals = grouped_normals.transpose(2, 1).contiguous().view(
+                batch_size * N_proposals, 3, self.num_points)
+            """
+            
+            grouped_normals = torch.bmm(rotation, grouped_normals)
+            grouped_normals = grouped_normals.view(
+                batch_size, N_proposals, 3, -1).transpose(1, 2)
+
+            if not self.ret_unique_cnt:
+                return grouped_xyz, grouped_features, grouped_normals
+            else:
+                return grouped_xyz, grouped_features, unique_cnt, grouped_normals
+        
         else:
-            return grouped_xyz, grouped_features, unique_cnt
+            if not self.ret_unique_cnt:
+                return grouped_xyz, grouped_features
+            else:
+                return grouped_xyz, grouped_features, unique_cnt
 
 
 if __name__ == "__main__":

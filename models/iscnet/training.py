@@ -27,6 +27,7 @@ class Trainer(BaseTrainer):
         ''' Performs a visualization step.
         '''
         '''load input and ground-truth data'''
+        return
         data = self.to_device(data)
 
         with torch.no_grad():

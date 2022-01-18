@@ -299,7 +299,7 @@ class QueryAndGroup(nn.Module):
         if self.ret_unique_cnt:
             assert(self.sample_uniformly)
 
-    def forward(self, xyz, new_xyz, features=None):
+    def forward(self, xyz, new_xyz, features=None, normals=None):
         # type: (QueryAndGroup, torch.Tensor. torch.Tensor, torch.Tensor) -> Tuple[Torch.Tensor]
         r"""
         Parameters
@@ -325,16 +325,21 @@ class QueryAndGroup(nn.Module):
                     unique_ind = torch.unique(idx[i_batch, i_region, :])
                     num_unique = unique_ind.shape[0]
                     unique_cnt[i_batch, i_region] = num_unique
-                    sample_ind = torch.randint(0, num_unique, (self.nsample - num_unique,), dtype=torch.long)
+                    sample_ind = torch.randint(
+                        0, num_unique, (self.nsample - num_unique,), dtype=torch.long)
                     all_ind = torch.cat((unique_ind, unique_ind[sample_ind]))
                     idx[i_batch, i_region, :] = all_ind
 
-
         xyz_trans = xyz.transpose(1, 2).contiguous()
-        grouped_xyz = grouping_operation(xyz_trans, idx)  # (B, 3, npoint, nsample)
+        grouped_xyz = grouping_operation(
+            xyz_trans, idx)  # (B, 3, npoint, nsample)
         grouped_xyz -= new_xyz.transpose(1, 2).unsqueeze(-1)
         if self.normalize_xyz:
             grouped_xyz /= self.radius
+
+        if normals is not None:
+            normals_trans = normals.transpose(1, 2).contiguous()
+            grouped_normals = grouping_operation(normals_trans, idx)
 
         if features is not None:
             grouped_features = grouping_operation(features, idx)
@@ -355,6 +360,8 @@ class QueryAndGroup(nn.Module):
             ret.append(grouped_xyz)
         if self.ret_unique_cnt:
             ret.append(unique_cnt)
+        if normals is not None:
+            ret.append(grouped_normals)
         if len(ret) == 1:
             return ret[0]
         else:

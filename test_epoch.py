@@ -19,7 +19,7 @@ def test_func(cfg, tester, test_loader):
     batch_size = cfg.config[mode]['batch_size']
     loss_recorder = LossRecorder(batch_size)
     AP_IOU_THRESHOLDS = cfg.config[mode]['ap_iou_thresholds']
-    evaluate_mesh_mAP = True if cfg.config[mode]['phase'] == 'completion' and cfg.config['generation'][
+    evaluate_mesh_mAP = True if cfg.config[mode]['phase'] in ['completion', 'w_completion'] and cfg.config['generation'][
         'generate_mesh'] and cfg.config[mode]['evaluate_mesh_mAP'] else False
     ap_calculator_list = [APCalculator(iou_thresh, cfg.dataset_config.class2type, evaluate_mesh_mAP) for iou_thresh in
                           AP_IOU_THRESHOLDS]

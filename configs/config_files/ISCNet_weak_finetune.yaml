@@ -1,11 +1,11 @@
 method: ISCNet
 resume: False
 finetune: True
-weight: ['out/iscnet/2021-03-30T22:48:41.879548/model_best.pth']
+weight: ['out/iscnet/2022-01-13T18:03:54.222558/model_best.pth'] # Pretrained model
 seed: 10
 device:
   use_gpu: True
-  gpu_ids: '0,1'
+  gpu_ids: '0'
   num_workers: 8
 data:
   dataset: scannet
@@ -23,6 +23,7 @@ data:
   points_subsample: [1024, 1024]
   hidden_dim: 512
   c_dim: 512
+  num_points_th: 64
   z_dim: 32
   threshold: 0.5
   completion_limit_in_train: 10
@@ -41,18 +42,24 @@ model:
   skip_propagation:
     method: SkipPropagation
     loss: Null
+  class_encode:
+    method: ClassEncoder
+    loss: Null
   completion:
     method: ONet
     loss: ONet_Loss
     weight: 0.005
+    mu: 0.02
+    sampled_point_weight: 0.6
+    knn_weight: 0.4
 optimizer:
   method: Adam
-  lr: 5e-5
+  lr: 1e-5
   betas: [0.9, 0.999]
   eps: 1e-08
   weight_decay: 0
 scheduler:
-  patience: 20
+  patience: 10
   factor: 0.1
   threshold: 0.01
 bnscheduler:
@@ -61,13 +68,14 @@ bnscheduler:
   bn_momentum_init: 0.5
   bn_momentum_max: 0.001
 train:
-  epochs: 240
-  phase: 'completion'
-  freeze: []
-  batch_size: 4
+  epochs: 120
+  phase: 'w_completion'
+  freeze: ['completion', 'class_encode']
+  batch_size: 2
+  use_class_encode_knn: True
 val:
   phase: 'completion'
-  batch_size: 8
+  batch_size: 2
   use_cls_nms: True
   use_3d_nms: True
   ap_iou_thresholds: [0.25, 0.5]

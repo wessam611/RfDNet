@@ -217,7 +217,7 @@ def generate(cfg, net, data, post_processing):
         end_points['vote_xyz'] = xyz
         end_points['vote_features'] = features
         # --------- DETECTION ---------
-        if_proposal_feature = cfg.config[mode]['phase'] == 'completion'
+        if_proposal_feature = cfg.config[mode]['phase'] in ['completion', 'w_completion']
         end_points, proposal_features = net.detection(xyz, features, end_points, if_proposal_feature)
 
         eval_dict, parsed_predictions = parse_predictions(end_points, data, cfg.eval_config)
