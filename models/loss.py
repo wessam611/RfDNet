@@ -21,7 +21,8 @@ criterion_heading_class = nn.CrossEntropyLoss(reduction='none')
 objectness_criterion = nn.CrossEntropyLoss(torch.Tensor(OBJECTNESS_CLS_WEIGHTS).cuda(), reduction='none')
 criterion_size_class = nn.CrossEntropyLoss(reduction='none')
 criterion_sem_cls = nn.CrossEntropyLoss(reduction='none')
-criterion_prior_cls = nn.CrossEntropyLoss()
+criterion_prior_cls = nn.NLLLoss()
+criterion_prior_cls2 = nn.CrossEntropyLoss()
 
 class BaseLoss(object):
     '''base loss class'''
@@ -426,9 +427,14 @@ class PriorClassificationLoss(BaseLoss):
         just calculates the loss of logits.. and maybe doing
         some metric learning loss on features
         '''
-        logits, _, _ ,_ = est_data
-        gt_label = gt_data['label']
-        return criterion_prior_cls(logits, gt_label)*self.weight
+        scaling_weight = 0.5 # TODO: set this via config
+
+        probs, probs_gtg = est_data
+        Y = gt_data['label']
+        loss1 = criterion_prior_cls(probs_gtg, Y)
+        loss2 = criterion_prior_cls2(probs, Y)
+        loss = scaling_weight * loss1 + loss2
+        return loss * self.weight
 
 # Metrics will be implemented exactly like losses
 @LOSSES.register_module

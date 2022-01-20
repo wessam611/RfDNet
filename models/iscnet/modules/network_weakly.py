@@ -6,6 +6,7 @@ from models.registers import METHODS, MODULES, LOSSES
 from models.network import BaseNetwork
 import torch
 from torch import nn
+import torch.nn.functional as F
 from net_utils.nn_distance import nn_distance
 import numpy as np
 from net_utils.ap_helper import parse_predictions, parse_groundtruths, assembly_pred_map_cls, assembly_gt_map_cls
@@ -14,7 +15,7 @@ from net_utils.libs import flip_axis_to_depth, extract_pc_in_box3d, flip_axis_to
 from torch import optim
 from models.loss import chamfer_func
 from net_utils.box_util import get_3d_box
-from external.group_loss import data_utility
+from external.group_loss import data_utility, gtg
 
 from .network import ISCNet
 
@@ -54,6 +55,9 @@ class ISCNet_WEAK(BaseNetwork):
             metric_fn = cfg.config['val']['metrics'][metric_name]
             setattr(self, metric_name + '_metric', LOSSES.get(metric_fn, 'Null')())
 
+        # Init group loss
+        self.gtg = gtg.GTG(self.cfg['data']['num_classes'])
+
         '''freeze submodules or not'''
         self.freeze_modules(cfg)
 
@@ -92,7 +96,16 @@ class ISCNet_WEAK(BaseNetwork):
         # if self.cfg.config[self.cfg.config['mode']]['phase'] == 'prior':
         completion_loss = self.completion_loss(est_data[2])
 
-        class_loss = self.class_encode_loss(est_data, gt_data)
+        # Group loss
+        probs, features, _ = est_data
+        labs, L, U = data_utility.get_labeled_and_unlabeled_points(gt_data['labels'],
+                                                                   self.cfg['train']['num_labeled_points_per_class'],
+                                                                   self.cfg['data']['num_classes'])
+        probs_gtg = F.softmax(probs)
+        probs_gtg, W = self.gtg(features, features.shape[0], labs, L, U, probs_gtg)
+        probs_gtg = torch.log(probs_gtg + 1e-12)
+
+        class_loss = self.class_encode_loss((probs, probs_gtg), gt_data)
         total_loss = {'completion_loss': completion_loss.item(),
                       'class_loss': class_loss.item(),
                       'total': class_loss + completion_loss}
