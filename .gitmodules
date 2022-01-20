@@ -1,0 +1,3 @@
+[submodule "external/group_loss"]
+	path = external/group_loss
+	url = https://github.com/dvl-tum/group_loss.git
