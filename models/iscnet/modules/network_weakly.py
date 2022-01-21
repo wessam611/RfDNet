@@ -15,7 +15,7 @@ from net_utils.libs import flip_axis_to_depth, extract_pc_in_box3d, flip_axis_to
 from torch import optim
 from models.loss import chamfer_func
 from net_utils.box_util import get_3d_box
-from external.group_loss import data_utility, gtg
+from external.group_loss import GTG, get_labeled_and_unlabeled_points
 
 from .network import ISCNet
 
@@ -56,7 +56,7 @@ class ISCNet_WEAK(BaseNetwork):
             setattr(self, metric_name + '_metric', LOSSES.get(metric_fn, 'Null')())
 
         # Init group loss
-        self.gtg = gtg.GTG(self.cfg['data']['num_classes'])
+        self.gtg = GTG(self.cfg.config['data']['num_classes'])
 
         '''freeze submodules or not'''
         self.freeze_modules(cfg)
@@ -97,11 +97,12 @@ class ISCNet_WEAK(BaseNetwork):
         completion_loss = self.completion_loss(est_data[2])
 
         # Group loss
-        probs, features, _ = est_data
-        labs, L, U = data_utility.get_labeled_and_unlabeled_points(gt_data['labels'],
-                                                                   self.cfg['train']['num_labeled_points_per_class'],
-                                                                   self.cfg['data']['num_classes'])
-        probs_gtg = F.softmax(probs)
+        probs, features, _, _ = est_data
+        labs, L, U = get_labeled_and_unlabeled_points(gt_data['label'],
+                                                      self.cfg.config['train']['num_labeled_points_per_class'],
+                                                      self.cfg.config['data']['num_classes'])
+
+        probs_gtg = F.softmax(probs, dim=1)
         probs_gtg, W = self.gtg(features, features.shape[0], labs, L, U, probs_gtg)
         probs_gtg = torch.log(probs_gtg + 1e-12)
 
