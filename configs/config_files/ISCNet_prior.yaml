@@ -61,6 +61,7 @@ train:
   phase: 'prior'
   freeze: []
   batch_size: 64
+  num_labeled_points_per_class: 4
 val:
   phase: 'prior'
   batch_size: 64
