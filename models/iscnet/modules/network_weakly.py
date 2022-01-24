@@ -76,14 +76,14 @@ class ISCNet_WEAK(BaseNetwork):
         if self.cfg.config[self.cfg.config['mode']]['phase'] == 'prior':
             pc = data['object_pointcloud']
             input_points = pc  # self.sample_for_prior(pc, 256) # not sure where the no. of points per object is set
-            logits, features_for_completion = self.class_encode(input_points)
+            logits, features_for_completion, feature_wise_loss = self.class_encode(input_points)
             completion_loss, shape_example = self.completion.compute_loss(features_for_completion,
                                                                           data['object_points'],  # just a 3D grid
                                                                           data['object_occupancies'],  # Labels in out
                                                                           data['label'],  # class labels for ShapeNet
                                                                           export_shape)
             # NOTE: end_points, BATCH_PROPOSAL_IDs removed
-            return logits, features_for_completion, completion_loss, shape_example
+            return logits, features_for_completion, completion_loss, shape_example, feature_wise_loss
         else:
             pass
             # not yet decided
@@ -97,7 +97,7 @@ class ISCNet_WEAK(BaseNetwork):
         completion_loss = self.completion_loss(est_data[2])
 
         # Group loss
-        probs, features, _, _ = est_data
+        probs, features, _, _, feats_loss = est_data
         labs, L, U = get_labeled_and_unlabeled_points(gt_data['label'],
                                                       self.cfg.config['train']['num_labeled_points_per_class'],
                                                       self.cfg.config['data']['num_classes'])
@@ -106,7 +106,7 @@ class ISCNet_WEAK(BaseNetwork):
         probs_gtg, W = self.gtg(features, features.shape[0], labs, L, U, probs_gtg)
         probs_gtg = torch.log(probs_gtg + 1e-12)
 
-        class_loss = self.class_encode_loss((probs, probs_gtg), gt_data)
+        class_loss = self.class_encode_loss((probs, probs_gtg, feats_loss), gt_data)
         total_loss = {'completion_loss': completion_loss.item(),
                       'class_loss': class_loss.item(),
                       'total': class_loss + completion_loss}

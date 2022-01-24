@@ -1,6 +1,7 @@
 # loss function library.
 # author: ynie
 # date: Feb, 2020
+from pyexpat import features
 import numpy as np
 import torch
 import torch.nn as nn
@@ -428,12 +429,12 @@ class PriorClassificationLoss(BaseLoss):
         some metric learning loss on features
         '''
         scaling_weight = 0.5 # TODO: set this via config
-
-        probs, probs_gtg = est_data
+        feats_var_weight = 0.3 #TODO: set this in config
+        probs, probs_gtg, loss3 = est_data
         Y = gt_data['label']
         loss1 = criterion_prior_cls(probs_gtg, Y)
         loss2 = criterion_prior_cls2(probs, Y)
-        loss = scaling_weight * loss1 + loss2
+        loss = scaling_weight * loss1 + loss2 + feats_var_weight*loss3
         return loss * self.weight
 
 # Metrics will be implemented exactly like losses

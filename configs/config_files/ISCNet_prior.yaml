@@ -40,6 +40,8 @@ model:
   class_encode:
     method: ClassEncoder
     loss: PriorClassificationLoss
+    feature_wise_loss: True
+    feature_wise_samples: 5
     weight: 1
 optimizer:
   method: Adam
@@ -64,7 +66,7 @@ train:
   num_labeled_points_per_class: 4
 val:
   phase: 'prior'
-  batch_size: 64
+  batch_size: 8
   metrics:
       cls_acc: ClassificationAccuracy
 # generation:

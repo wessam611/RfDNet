@@ -367,19 +367,36 @@ class ResnetPointnet(nn.Module):
         # output size: B x T X F
         net = self.fc_pos(p)
         net = self.block_0(net)
-        pooled = self.pool(net, dim=1, keepdim=True).expand(net.size())
+        net_ = net
+        if point_seg_mask is not None:
+            net_ = net*point_seg_mask.unsqueeze(dim=-1)
+            pooled = self.pool(net_, dim=1, keepdim=True).expand(net.size())
+        else:
+            pooled = self.pool(net, dim=1, keepdim=True).expand(net.size())
         net = torch.cat([net, pooled], dim=2)
 
         net = self.block_1(net)
-        pooled = self.pool(net, dim=1, keepdim=True).expand(net.size())
+        if point_seg_mask is not None:
+            net_ = net*point_seg_mask.unsqueeze(dim=-1)
+            pooled = self.pool(net_, dim=1, keepdim=True).expand(net.size())
+        else:
+            pooled = self.pool(net, dim=1, keepdim=True).expand(net.size())
         net = torch.cat([net, pooled], dim=2)
 
         net = self.block_2(net)
-        pooled = self.pool(net, dim=1, keepdim=True).expand(net.size())
+        if point_seg_mask is not None:
+            net_ = net*point_seg_mask.unsqueeze(dim=-1)
+            pooled = self.pool(net_, dim=1, keepdim=True).expand(net.size())
+        else:
+            pooled = self.pool(net, dim=1, keepdim=True).expand(net.size())
         net = torch.cat([net, pooled], dim=2)
 
         net = self.block_3(net)
-        pooled = self.pool(net, dim=1, keepdim=True).expand(net.size())
+        if point_seg_mask is not None:
+            net_ = net*point_seg_mask.unsqueeze(dim=-1)
+            pooled = self.pool(net_, dim=1, keepdim=True).expand(net.size())
+        else:
+            pooled = self.pool(net, dim=1, keepdim=True).expand(net.size())
         net = torch.cat([net, pooled], dim=2)
 
         net = self.block_4(net)
