@@ -441,7 +441,7 @@ class PriorClassificationLoss(BaseLoss):
 @LOSSES.register_module
 class ClassificationAccuracy(BaseLoss):
     def __call__(self, est_data, gt_data, dataset_config=None):
-        logits, _, _ ,_ = est_data
+        logits, _, _ ,_, _ = est_data
         pred = torch.argmax(logits, dim=-1)
         gt_label = gt_data['label']
         return (torch.sum(pred==gt_label)/gt_label.shape[0]).item()
