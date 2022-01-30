@@ -32,6 +32,8 @@ class ClassEncoder(nn.Module):
             cross_object_var = features_samples.var(dim=1).sum(-1).mean()
             th = torch.Tensor([0.]).to(pc.device)[0]
             features_wise_loss = torch.maximum(inner_object_var - cross_object_var + 1, th)
+            if torch.isnan(features_wise_loss):
+                features_wise_loss = 0
             features = features_samples[-1]
         else:
             features = self.encoder(pc, point_seg_mask=point_seg_mask)
