@@ -1,9 +1,4 @@
-## RfD-Net [[Project Page]](https://yinyunie.github.io/RfDNet-Page/ ) [[Paper]](https://arxiv.org/abs/2011.14744) [[Video]](https://www.youtube.com/watch?v=RHHFC2UaZtQ)
-
-**RfD-Net: Point Scene Understanding by Semantic Instance Reconstruction** <br>
-[Yinyu Nie](https://yinyunie.github.io/), [Ji Hou](https://sekunde.github.io/), [Xiaoguang Han](https://mypage.cuhk.edu.cn/academics/hanxiaoguang/), [Matthias Nießner](https://niessnerlab.org/members/matthias_niessner/profile.html) <br>
-In [CVPR, 2021](http://cvpr2021.thecvf.com/).
-
+## Weakly-supervised 3D Semantic Scene Reconstruction
 
 <img src="out/samples/scene0549_00/points.png" alt="points.png" width="45%" /> <img src="out/samples/scene0549_00/pred.png" alt="pred.png" width="45%" />
 
@@ -37,11 +32,25 @@ From an incomplete point cloud of a 3D scene (left), our method learns to jointl
 ---
 
 ### Demo
-The pretrained model can be downloaded [here](https://livebournemouthac-my.sharepoint.com/:u:/g/personal/ynie_bournemouth_ac_uk/EcHBlVk4nfpEiXrEiBYkpEoBJJO1rjTioCNXRynTKmvHgQ?e=Z53UM7). Put the pretrained model in the directory as below
+We provide the pretrained weights for the baseline, group and variance loss and the finetuned model.
 
+Baseline:
 ```
-out/pretrained_models/pretrained_weight.pth
+https://adl4cv-winter2021.s3.eu-central-1.amazonaws.com/weights/baseline.pth
 ```
+
+Group Loss + Variance Loss:
+```
+https://adl4cv-winter2021.s3.eu-central-1.amazonaws.com/weights/group_loss_variance_loss.pth
+```
+
+Finetuned:
+```
+https://adl4cv-winter2021.s3.eu-central-1.amazonaws.com/weights/finetuned.pth
+```
+
+Save the weights to any location and set the path in `config/config_files/ISCNet_test.yaml`
+
 A demo is illustrated below to see how our method works.
 ```
 cd RfDNet
@@ -99,7 +108,7 @@ datasets/ShapeNetv2_data/voxel
 datasets/ShapeNetv2_data/watertight_scaled_simplified
 ```
 
-Download the processed partial point clouds:
+and download the processed partial point clouds:
 ```
 wget https://adl4cv-winter2021.s3.eu-central-1.amazonaws.com/partial_pointclouds.zip
 unzip partial_pointclouds.zip -d datasets/ShapeNetv2_data/
@@ -130,7 +139,12 @@ or <br>
     ```
     python utils/shapenet/3_simplify_fusion.py --in_dir datasets/ShapeNetv2_data/watertight_scaled --out_dir datasets/ShapeNetv2_data/watertight_scaled_simplified
    ```
-   
+
+5. Generate the partial point clouds by running
+
+    ```
+    python utils/mesh2partial.py datasets/ShapeNetv2_data/watertight_scaled_simplified
+    ```
 
 ##### Verify preprocessed data
    After preprocessed the data, you can run the visualization script below to check if they are generated correctly.
@@ -151,9 +165,28 @@ We use the configuration file (see 'configs/config_files/****.yaml') to fully co
 You can check a template at `configs/config_files/ISCNet.yaml`.
 
 #### Training
-We firstly pretrain our **detection** module and **completion** module followed by a joint refining. You can follow the process below.
+We first train our **prior network**. Then we pretrain the **detection** module and **completion** module followed by a joint refining. You can follow the process below.
 
-1. Pretrain the **detection** module by
+1. Train the Shape Prior Network by
+
+   ```
+   python main.py --config configs/config_files/ISCNet_prior.yaml --mode train
+   ```
+   It will save the weights to
+   `out/shapenet/a_folder_with_timestamp/model_best.pth`
+
+2. Generate and save the encodings:
+   
+   Copy the prior weights path to `config/config_files/ISCNet_encodings.yaml` as:
+   ```
+   weight: ['out/shapenet/a_folder_with_prior_module/model_best.pth']
+   ```
+   and run
+   ```
+   python main.py --config configs/config_files/ISCNet_encodings.yaml --mode gen_encode
+   ```
+
+3. Pretrain the **detection** module by
    
    ```
    python main.py --config configs/config_files/ISCNet_detection.yaml --mode train
@@ -161,24 +194,24 @@ We firstly pretrain our **detection** module and **completion** module followed 
    It will save the detection module weight at
    `out/iscnet/a_folder_with_detection_module/model_best.pth`
 
-2. Copy the weight path of detection module (see 1.) into `configs/config_files/ISCNet_completion.yaml` as
+4. Copy the weight path of the detection module and the prior network into `configs/config_files/ISCNet_weak_completion.yaml` as
    ```
-   weight: ['out/iscnet/a_folder_with_detection_module/model_best.pth']
+   weight: ['out/iscnet/a_folder_with_detection_module/model_best.pth', 'out/shapenet/a_folder_with_prior_module/model_best.pth']
    ```
-   Then pretrain the **completion** module by
+   Then train the **completion** module with weak supervision by
    ```
-   python main.py --config configs/config_files/ISCNet_completion.yaml --mode train
+   python main.py --config configs/config_files/ISCNet_weak_completion.yaml --mode train
    ```
    It will save the completion module weight at
    `out/iscnet/a_folder_with_completion_module/model_best.pth`
    
-3. Copy the weight path of completion module (see 2.) into `configs/config_files/ISCNet.yaml` as
+3. Copy the weight path of completion module (see 2.) into `configs/config_files/ISCNet_weak_finetune.yaml` as
    ```
    weight: ['out/iscnet/a_folder_with_completion_module/model_best.pth']
    ```
-   Then jointly finetune RfD-Net by
+   Then jointly finetune the model by
    ```
-   python main.py --config configs/config_files/ISCNet.yaml --mode train
+   python main.py --config configs/config_files/ISCNet_weak_finetune.yaml --mode train
    ```
    It will save the trained model weight at
    `out/iscnet/a_folder_with_RfD-Net/model_best.pth`
