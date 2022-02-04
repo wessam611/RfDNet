@@ -65,7 +65,7 @@ def generate_encodings(cfg, path):
             )
             input_points = torch.from_numpy(input_points).type(torch.float32)
             input_points = input_points.to(device)
-            _, curr_enc = net.module.class_encode(input_points)
+            _, curr_enc, _ = net.module.class_encode(input_points)
             curr_enc = torch.mean(curr_enc, dim=0)
             curr_enc.detach()
             encodings[save_path] = curr_enc.cpu().numpy()

@@ -26,13 +26,11 @@ if __name__ == '__main__':
     cfg.log_string('Loading configurations.')
     cfg.log_string(cfg.config)
     cfg.write_config()
-
     '''Run'''
 
     if cfg.config['mode'] == 'gen_encode':
         path = cfg.config['save_path']
         generate_encodings(cfg, path)
-        print('ahahah')
         exit()
     if cfg.config['mode'] == 'train':
         import train

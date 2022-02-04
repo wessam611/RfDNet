@@ -445,13 +445,13 @@ class ISCNet(BaseNetwork):
                 point_seg_mask = self.mask_proposals_out(vertices, vertex_normals, object_input_features, 
                                             cls_codes_for_completion, point_seg_mask, 
                                             num_points_th=self.cfg.config['data'].get('num_points_th', 256))
-            
+
             # Skip completion if all proposals were masked out
             if vertices.shape[0] > 0:
                 
                 knn_feats = object_input_features
                 if self.cfg.config[self.cfg.config['mode']].get('use_class_encode_knn', None): # using prior decoder or rfd features (config)
-                    _, knn_feats = self.class_encode(vertices*torch.unsqueeze(point_seg_mask, dim=-1), point_seg_mask=point_seg_mask)
+                    _, knn_feats, _ = self.class_encode(vertices*torch.unsqueeze(point_seg_mask, dim=-1), point_seg_mask=point_seg_mask)
                 knn_dict = KNN_encodings.getKNN(cls_codes_for_completion.detach().clone().cpu(), knn_feats.detach().clone().cpu())
                 knn_dict = {key: torch.from_numpy(knn_dict[key]).to(vertices.device) for key in knn_dict.keys()}
                 # if output shape voxels.

@@ -1,6 +1,7 @@
 # loss function library.
 # author: ynie
 # date: Feb, 2020
+from pyexpat import features
 import numpy as np
 import torch
 import torch.nn as nn
@@ -21,7 +22,8 @@ criterion_heading_class = nn.CrossEntropyLoss(reduction='none')
 objectness_criterion = nn.CrossEntropyLoss(torch.Tensor(OBJECTNESS_CLS_WEIGHTS).cuda(), reduction='none')
 criterion_size_class = nn.CrossEntropyLoss(reduction='none')
 criterion_sem_cls = nn.CrossEntropyLoss(reduction='none')
-criterion_prior_cls = nn.CrossEntropyLoss()
+criterion_prior_cls = nn.NLLLoss()
+criterion_prior_cls2 = nn.CrossEntropyLoss()
 
 class BaseLoss(object):
     '''base loss class'''
@@ -426,15 +428,20 @@ class PriorClassificationLoss(BaseLoss):
         just calculates the loss of logits.. and maybe doing
         some metric learning loss on features
         '''
-        logits, _, _ ,_ = est_data
-        gt_label = gt_data['label']
-        return criterion_prior_cls(logits, gt_label)*self.weight
+        scaling_weight = 0.5 # TODO: set this via config
+        feats_var_weight = 0.3 #TODO: set this in config
+        probs, probs_gtg, loss3 = est_data
+        Y = gt_data['label']
+        loss1 = criterion_prior_cls(probs_gtg, Y)
+        loss2 = criterion_prior_cls2(probs, Y)
+        loss = scaling_weight * loss1 + loss2 + feats_var_weight*loss3
+        return loss * self.weight
 
 # Metrics will be implemented exactly like losses
 @LOSSES.register_module
 class ClassificationAccuracy(BaseLoss):
     def __call__(self, est_data, gt_data, dataset_config=None):
-        logits, _, _ ,_ = est_data
+        logits, _, _ ,_, _ = est_data
         pred = torch.argmax(logits, dim=-1)
         gt_label = gt_data['label']
         return (torch.sum(pred==gt_label)/gt_label.shape[0]).item()
