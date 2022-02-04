@@ -50,8 +50,8 @@ model:
     loss: ONet_Loss
     weight: 0.005
     mu: 0.02
-    sampled_point_weight: 0.6
-    knn_weight: 0.4
+    sampled_point_weight: 0.7
+    knn_weight: 0.3
 optimizer:
   method: Adam
   lr: 1e-5
